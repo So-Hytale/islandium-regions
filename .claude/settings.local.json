@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"D:\\\\HYTALE\\\\plugins\\\\islandium-regions\\\\build\\\\resources\\\\main\\\\Common\\\\UI\\\\Custom\\\\Pages\\\\Regions\"\" 2>/dev/null || echo \"Directory not found \")",
+      "Bash(dir /s /b \"D:\\\\HYTALE\")",
+      "Bash(findstr:*)",
+      "Bash(unzip:*)",
+      "Bash(./gradlew clean build:*)",
+      "Bash(cmd.exe /c \"gradlew clean build\")",
+      "Bash(cmd.exe /c \"gradlew.bat :islandium-regions:clean :islandium-regions:build\")",
+      "Bash(./gradlew :islandium-regions:clean :islandium-regions:build:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(dir:*)",
+      "Bash(gradle build:*)",
+      "Bash(cd:*)",
+      "Bash(cmd /c \"gradle build --console=plain\")",
+      "Bash(powershell -Command \"cd 'D:\\\\HYTALE\\\\plugins\\\\islandium-regions'; gradle build --console=plain\":*)",
+      "Bash(powershell -Command \"cd ''D:\\\\HYTALE\\\\plugins\\\\islandium-regions''; & ''C:\\\\Program Files\\\\Gradle\\\\gradle-8.14\\\\bin\\\\gradle.bat'' build --console=plain\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Program Files'' -Filter ''*gradle*'' -Directory\")",
+      "Bash(powershell:*)",
+      "Bash(gradlew.bat build:*)",
+      "Bash(cmd /c \"gradlew.bat build --quiet\")",
+      "Bash(cmd.exe /c:*)",
+      "Bash(./gradlew :islandium-regions:build:*)",
+      "Bash(cmd /c \"gradlew.bat build\")",
+      "Bash(cmd /c \"gradle build\")",
+      "Bash(./gradlew.bat build:*)",
+      "Bash(cmd //c:*)",
+      "Bash(./gradlew :islandium-core:build:*)",
+      "Bash(./gradlew :islandium-regions:compileJava:*)",
+      "Bash(./gradlew clean:*)"
+    ]
+  }
+}

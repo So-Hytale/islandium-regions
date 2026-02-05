@@ -1,0 +1,59 @@
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '8.3.5'
+}
+
+archivesBaseName = 'islandium-regions'
+
+dependencies {
+    // Islandium Core (compileOnly car fourni par le plugin core au runtime)
+    compileOnly project(path: ':islandium-core', configuration: 'default')
+    compileOnly project(path: ':islandium-api', configuration: 'default')
+
+    // Hytale Server API (compile-only car fourni par le serveur)
+    compileOnly files('../libs/HytaleServer.jar')
+    compileOnly files('../libs/SimpleClaims-1.0.19.jar')
+
+    // JSON
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // Annotations
+    compileOnly 'org.jetbrains:annotations:24.1.0'
+}
+
+shadowJar {
+    archiveBaseName.set('islandium-regions')
+    archiveClassifier.set('')
+    archiveVersion.set(version)
+
+    // Relocaliser les dépendances pour éviter les conflits
+    relocate 'com.google.gson', 'com.islandium.libs.gson'
+
+    manifest {
+        attributes(
+            'Main-Class': 'com.islandium.regions.RegionsPlugin',
+            'Implementation-Title': 'Islandium Regions',
+            'Implementation-Version': version,
+            'Implementation-Vendor-Id': 'com.islandium',
+            'Java-Version': '21'
+        )
+    }
+}
+
+jar {
+    archiveBaseName.set('islandium-regions')
+    archiveVersion.set(version)
+
+    manifest {
+        attributes(
+            'Main-Class': 'com.islandium.regions.RegionsPlugin',
+            'Implementation-Title': 'Islandium Regions',
+            'Implementation-Version': version,
+            'Implementation-Vendor-Id': 'com.islandium',
+            'Java-Version': '21'
+        )
+    }
+}
+
+// Build shadow jar by default
+build.dependsOn shadowJar

@@ -1,0 +1,15 @@
+{
+  "Group": "islandium",
+  "Name": "regions",
+  "Version": "1.0.1",
+  "Description": "Islandium Regions - Region protection plugin (WorldGuard-like)",
+  "Main": "com.islandium.regions.RegionsPlugin",
+  "Website": "",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*",
+    "Hytale:BuilderTools": "*",
+    "islandium:core": "*"
+  },
+  "IncludesAssetPack": true
+}

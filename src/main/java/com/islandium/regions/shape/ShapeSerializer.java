@@ -21,7 +21,7 @@ public final class ShapeSerializer {
      * - min_x, min_y, min_z, max_x, max_y, max_z (INT, toujours presents)
      * - center_x, center_y, center_z (INT, null pour cuboid)
      * - radius (INT, null pour cuboid)
-     * - shape_height (INT, null pour cuboid)
+     * - height (INT, null pour cuboid)
      * - radius_adjust (DOUBLE, null -> defaut 0.46)
      */
     @NotNull
@@ -64,7 +64,7 @@ public final class ShapeSerializer {
         int centerY = rs.getInt("center_y");
         int centerZ = rs.getInt("center_z");
         int radius = rs.getInt("radius");
-        int height = rs.getInt("shape_height");
+        int height = rs.getInt("height");
 
         double radiusAdjust = rs.getDouble("radius_adjust");
         if (rs.wasNull() || radiusAdjust <= 0) {

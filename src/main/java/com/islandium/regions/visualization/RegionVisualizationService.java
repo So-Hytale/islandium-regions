@@ -154,6 +154,7 @@ public class RegionVisualizationService {
         double rZSq = rZ * rZ;
 
         List<DisplayDebug> packets = new ArrayList<>();
+        int edgeCount = 0;
 
         // Parcourir la grille de -radius à +radius pour trouver les blocs de contour
         for (int dz = -halfH; dz <= halfH; dz++) {
@@ -175,6 +176,7 @@ public class RegionVisualizationService {
                 }
 
                 if (isEdge) {
+                    edgeCount++;
                     // Position du bloc dans le monde (centre du bloc)
                     double bx = cx + dx + 0.5;
                     double bz = cz + dz + 0.5;
@@ -191,6 +193,9 @@ public class RegionVisualizationService {
                 }
             }
         }
+
+        System.out.println("[DEBUG] Cylinder visualization: radius=" + radius + ", height=" + height +
+                          ", radiusAdjust=" + radiusAdjust + ", edgeBlocks=" + edgeCount + ", totalPackets=" + packets.size());
 
         // Marqueur au centre
         packets.add(createEdge(cx + 0.5, cy + height / 2.0, cz + 0.5, 0.3, height + 2, 0.3, CYLINDER_COLOR));

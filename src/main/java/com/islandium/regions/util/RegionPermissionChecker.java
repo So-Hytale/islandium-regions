@@ -63,13 +63,8 @@ public final class RegionPermissionChecker {
         // Les overrides joueur sont ABSOLUS - pas de bypass possible
         if (uuid != null) {
             Object playerOverride = region.getPlayerFlag(uuid, primaryFlag);
-            if (playerOverride == null && fallbackFlag != null) {
-                playerOverride = region.getPlayerFlag(uuid, fallbackFlag);
-            }
-            if (playerOverride != null) {
-                // Override joueur trouvé - évaluation STRICTE (pas de bypass OP/Creative)
-                return evaluateFlagValueStrict(playerOverride, region, uuid);
-            }
+            if (playerOverride == null && fallbackFlag != null) playerOverride = region.getPlayerFlag(uuid, fallbackFlag);
+            if (playerOverride != null) return evaluateFlagValueStrict(playerOverride, region, uuid);
         }
 
         // === 2. Vérifier override GROUPE (par priorité de rank décroissante) ===
@@ -95,10 +90,7 @@ public final class RegionPermissionChecker {
         // === 3. Utiliser le flag de RÉGION (fallback) ===
         // Seuls les flags de région peuvent être bypassés par OP/Creative
         Object flagValue = region.getFlags().get(primaryFlag);
-        if (flagValue == null && fallbackFlag != null) {
-            flagValue = region.getFlags().get(fallbackFlag);
-        }
-
+        if (flagValue == null && fallbackFlag != null) flagValue = region.getFlags().get(fallbackFlag);
         return evaluateFlagValue(flagValue, region, player, uuid);
     }
 

@@ -42,24 +42,13 @@ public class BreakBlockEventSystem extends EntityEventSystem<EntityStore, BreakB
                        @Nonnull BreakBlockEvent event) {
 
         RegionsPlugin plugin = RegionsPlugin.get();
-        if (plugin == null || plugin.getRegionService() == null) {
-            return;
-        }
+        if (plugin == null || plugin.getRegionService() == null) return;
 
-        // Ignorer le cassage de blocs d'air (déclenché lors du placement de blocs)
-        // Quand on place un bloc, Hytale déclenche un BreakBlockEvent sur l'air
-        try {
-            BlockType blockType = event.getBlockType();
-            if (blockType == null || blockType == BlockType.EMPTY) {
-                return; // C'est de l'air, ignorer (c'est un placement, pas un cassage réel)
-            }
-        } catch (Exception ignored) {
-            // Si on ne peut pas obtenir le blockType, continuer la vérification
-        }
+        BlockType blockType = event.getBlockType();
+        if (blockType == null || blockType == BlockType.EMPTY) return;
 
         Vector3i pos = event.getTargetBlock();
 
-        // Obtenir le monde depuis le store
         String worldName;
         try {
             var externalData = store.getExternalData();
@@ -73,9 +62,7 @@ public class BreakBlockEventSystem extends EntityEventSystem<EntityStore, BreakB
         }
 
         List<RegionImpl> regions = plugin.getRegionService().getRegionsAt(worldName, pos.getX(), pos.getY(), pos.getZ());
-        if (regions.isEmpty()) {
-            return;
-        }
+        if (regions.isEmpty()) return;
 
         RegionImpl region = regions.get(0);
 

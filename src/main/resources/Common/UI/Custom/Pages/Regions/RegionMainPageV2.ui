@@ -2,7 +2,7 @@ $C = "../../Common.ui";
 
 $C.@PageOverlay {
     $C.@Container {
-        Anchor: (Width: 950, Height: 650);
+        Anchor: (Width: 950, Height: 750);
 
         #Title {
             $C.@Title {
@@ -359,7 +359,46 @@ $C.@PageOverlay {
                         Label #EditorMembers { Text: "Membres: 0"; Anchor: (Height: 22); Style: (FontSize: 13, TextColor: #96a9be); }
                     }
 
-                    Label #EditorPriority { Text: "Priorite: 0"; Anchor: (Height: 36, Top: 8); Style: (FontSize: 14, TextColor: #ffd700, RenderBold: true, VerticalAlignment: Center); }
+                    // === PRIORITE ET MODIFICATION ===
+                    Group #PriorityBox {
+                        Anchor: (Height: 80, Top: 8);
+                        Background: (Color: #1a2535);
+                        Padding: (Full: 10);
+                        LayoutMode: Top;
+
+                        Label #EditorPriority { Text: "Priorite: 0"; Anchor: (Height: 26); Style: (FontSize: 14, TextColor: #ffd700, RenderBold: true); }
+
+                        Group {
+                            Anchor: (Height: 40, Top: 4);
+                            LayoutMode: Left;
+
+                            $C.@NumberField #InputNewPriority {
+                                FlexWeight: 1;
+                                Anchor: (Height: 36);
+                                Value: 0;
+                            }
+
+                            Group { Anchor: (Width: 8); }
+
+                            TextButton #BtnChangePriority {
+                                Anchor: (Width: 90, Height: 36);
+                                Text: "CHANGER";
+                                Style: TextButtonStyle(
+                                    Default: (Background: #5a4a6a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)),
+                                    Hovered: (Background: #6a5a7a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)),
+                                    Sounds: $C.@ButtonSounds
+                                );
+                            }
+                        }
+                    }
+
+                    Group #ModifyShapeBox {
+                        Anchor: (Height: 140, Top: 8);
+                        Background: (Color: #1a2535);
+                        Padding: (Full: 8);
+                        LayoutMode: Top;
+                        // Contenu rempli dynamiquement par appendInline
+                    }
 
                     Group {
                         Anchor: (Height: 36, Top: 10);
@@ -388,16 +427,6 @@ $C.@PageOverlay {
                                 Sounds: $C.@ButtonSounds
                             );
                         }
-                    }
-
-                    TextButton #BtnSetSelection {
-                        Anchor: (Height: 32, Top: 6);
-                        Text: "COPIER VERS SELECTION";
-                        Style: TextButtonStyle(
-                            Default: (Background: #5a4a2a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)),
-                            Hovered: (Background: #6a5a3a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)),
-                            Sounds: $C.@ButtonSounds
-                        );
                     }
 
                     TextButton #BtnEditFlags {
@@ -621,14 +650,31 @@ $C.@PageOverlay {
                     Anchor: (Top: 10);
                     Visible: false;
 
+                    // Section - Joueurs avec overrides
+                    Group #PlayersWithOverridesSection {
+                        Anchor: (Height: 90);
+                        LayoutMode: Top;
+                        Background: (Color: #151d28);
+                        Padding: (Full: 10);
+
+                        Label { Text: "Joueurs avec overrides:"; Anchor: (Height: 24); Style: (FontSize: 12, TextColor: #96a9be, RenderBold: true); }
+
+                        Group #PlayerButtonsContainer {
+                            FlexWeight: 1;
+                            LayoutMode: Left;
+                            ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                            Anchor: (Top: 4);
+                        }
+                    }
+
                     // Recherche de joueur
                     Group #PlayerSelector {
-                        Anchor: (Height: 50);
+                        Anchor: (Height: 50, Top: 8);
                         LayoutMode: Left;
                         Background: (Color: #151d28);
                         Padding: (Full: 10);
 
-                        Label { Anchor: (Width: 80); Text: "Joueur:"; Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center); }
+                        Label { Anchor: (Width: 80); Text: "Ajouter:"; Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center); }
 
                         $C.@TextField #InputPlayerSearch {
                             FlexWeight: 1;
@@ -640,7 +686,7 @@ $C.@PageOverlay {
 
                         TextButton #BtnSearchPlayer {
                             Anchor: (Width: 100, Height: 34);
-                            Text: "CHERCHER";
+                            Text: "AJOUTER";
                             Style: TextButtonStyle(
                                 Default: (Background: #2a5a2a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)),
                                 Hovered: (Background: #3a6a3a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)),
@@ -661,7 +707,7 @@ $C.@PageOverlay {
 
                         TextButton #BtnClearPlayerSelection {
                             Anchor: (Width: 80, Height: 28);
-                            Text: "EFFACER";
+                            Text: "FERMER";
                             Style: TextButtonStyle(
                                 Default: (Background: #5a2a2a, LabelStyle: (FontSize: 10, TextColor: #ff6666, HorizontalAlignment: Center, VerticalAlignment: Center)),
                                 Hovered: (Background: #6a3a3a, LabelStyle: (FontSize: 10, TextColor: #ff8888, HorizontalAlignment: Center, VerticalAlignment: Center)),

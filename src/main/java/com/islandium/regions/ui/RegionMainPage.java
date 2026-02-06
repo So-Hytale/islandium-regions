@@ -130,7 +130,10 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         // Page Editor
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnTeleport", EventData.of("Action", "teleport"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnShowZone", EventData.of("Action", "showZone"), false);
-        event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnSetSelection", EventData.of("Action", "setSelection"), false);
+        event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnChangePriority",
+            EventData.of("Action", "changePriority").append("@NewPriority", "#InputNewPriority.Value"), false);
+        // Note: #BtnUpdateFromSelection et #BtnUpdateCylinder sont créés dynamiquement avec appendInline
+        // Les event bindings sont ajoutés dans loadEditorData après leur création
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnEditFlags", EventData.of("NavTo", "flags"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnEditMembers", EventData.of("NavTo", "members"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnDeleteRegion", EventData.of("Action", "deleteRegion"), false);
@@ -321,8 +324,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         if (regions.isEmpty()) {
             cmd.appendInline("#RegionsList",
-                "Label { Anchor: (Height: 40); Style: (FontSize: 13, TextColor: #808080, HorizontalAlignment: Center); }");
-            cmd.set("#RegionsList Label.Text", "Aucune region dans ce monde");
+                "Label { Text: \"Aucune region dans ce monde\"; Anchor: (Height: 40); Style: (FontSize: 13, TextColor: #808080, HorizontalAlignment: Center, VerticalAlignment: Center); }");
         } else {
             for (int i = 0; i < regions.size(); i++) {
                 RegionImpl region = regions.get(i);
@@ -452,6 +454,58 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
             int priority = region.getPriority();
             cmd.set("#EditorPriority.Text", "Priorite: " + priority);
+            cmd.set("#InputNewPriority.Value", priority);
+
+            // Reconstruire dynamiquement les contrôles selon le type de forme
+            cmd.clear("#ModifyShapeBox");
+
+            if (shape instanceof CylinderShape cyl) {
+                int radius = cyl.getRadius();
+                int height = cyl.getHeight();
+                plugin.log(java.util.logging.Level.INFO, "Loading cylinder values: radius=" + radius + ", height=" + height);
+
+                // UI avec Groups horizontaux pour Rayon et Hauteur
+                String cylinderUI =
+                    "Label { Text: \"Forme: Cylindre\"; Anchor: (Height: 18); Style: (FontSize: 12, TextColor: #6ab4ff, RenderBold: true); } " +
+                    "Group { Anchor: (Height: 26, Top: 4); LayoutMode: Left; " +
+                    "Label { Text: \"Rayon:\"; Anchor: (Width: 60, Height: 26); Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); } " +
+                    "TextField #InputCylinderRadius { FlexWeight: 1; Anchor: (Height: 26); Value: \"" + radius + "\"; } " +
+                    "} " +
+                    "Group { Anchor: (Height: 26, Top: 4); LayoutMode: Left; " +
+                    "Label { Text: \"Hauteur:\"; Anchor: (Width: 60, Height: 26); Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); } " +
+                    "TextField #InputCylinderHeight { FlexWeight: 1; Anchor: (Height: 26); Value: \"" + height + "\"; } " +
+                    "} " +
+                    "TextButton #BtnUpdateCylinder { " +
+                    "Anchor: (Height: 32, Top: 6); " +
+                    "Text: \"METTRE A JOUR\"; " +
+                    "Style: TextButtonStyle(" +
+                    "Default: (Background: #5a4a6a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)), " +
+                    "Hovered: (Background: #6a5a7a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true))" +
+                    "); " +
+                    "}";
+
+                cmd.appendInline("#ModifyShapeBox", cylinderUI);
+
+                // Debug: Log les IDs créés
+                plugin.log(java.util.logging.Level.INFO, "[DEBUG] Created TextField #InputCylinderRadius with initial value: " + radius);
+                plugin.log(java.util.logging.Level.INFO, "[DEBUG] Created TextField #InputCylinderHeight with initial value: " + height);
+
+                // Ajouter l'event binding pour le bouton
+                event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnUpdateCylinder",
+                    EventData.of("Action", "updateCylinder")
+                        .append("@NewRadius", "#InputCylinderRadius.Value")
+                        .append("@NewHeight", "#InputCylinderHeight.Value"), false);
+
+            } else if (shape instanceof CuboidShape cuboid) {
+                BoundingBox bounds = cuboid.getBounds();
+                String boundsText = String.format("Min: (%d,%d,%d) - Max: (%d,%d,%d)",
+                    bounds.getMinX(), bounds.getMinY(), bounds.getMinZ(),
+                    bounds.getMaxX(), bounds.getMaxY(), bounds.getMaxZ());
+
+                String cuboidUI = "Label { Text: \"" + boundsText + "\"; Anchor: (Height: 40); Style: (FontSize: 14, TextColor: #ffffff); }";
+
+                cmd.appendInline("#ModifyShapeBox", cuboidUI);
+            }
 
         } catch (Exception e) {
             plugin.log(java.util.logging.Level.SEVERE, "loadEditorData: Error setting basic info: " + e.getMessage());
@@ -463,43 +517,53 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         cmd.set("#BtnDeleteRegion.Visible", !confirmDelete);
         cmd.set("#DeleteConfirmButtons.Visible", confirmDelete);
 
-        // Flags actifs
+        // Flags actifs - VERSION ENRICHIE avec overrides
         try {
             cmd.clear("#ActiveFlagsList");
+
+            // 1. FLAGS DE BASE DE LA REGION
             Map<RegionFlag, Object> flags = region.getFlags();
-
-            if (flags.isEmpty()) {
+            if (!flags.isEmpty()) {
                 cmd.appendInline("#ActiveFlagsList",
-                    "Label { Text: \"Aucun flag personnalise\"; Anchor: (Height: 30); Style: (FontSize: 12, TextColor: #808080, HorizontalAlignment: Center); }");
-            } else {
+                    "Label { Text: \"FLAGS DE BASE\"; Anchor: (Height: 26, Bottom: 4); Style: (FontSize: 11, TextColor: #ffd700, RenderBold: true, RenderUppercase: true); }");
+
                 for (Map.Entry<RegionFlag, Object> entry : flags.entrySet()) {
-                    RegionFlag flag = entry.getKey();
-                    Object value = entry.getValue();
-
-                    String valueStr;
-                    String bgColor;
-                    String textColor;
-
-                    if (value instanceof Boolean boolVal) {
-                        valueStr = boolVal ? "ALLOW" : "DENY";
-                        bgColor = boolVal ? "#1a3a1a" : "#3a1a1a";
-                        textColor = boolVal ? "#5adf5a" : "#df5a5a";
-                    } else {
-                        valueStr = value != null ? sanitize(value.toString()) : "null";
-                        bgColor = "#1a2a3a";
-                        textColor = "#6ab4ff";
-                    }
-
-                    // IMPORTANT: Utiliser Anchor: (Height: X, Bottom: Y) et non Margin: (Bottom: Y)
-                    String flagCode = String.format(
-                        "Group { Anchor: (Height: 32, Bottom: 3); LayoutMode: Left; Background: (Color: %s); Padding: (Horizontal: 10, Vertical: 4); " +
-                        "Label { FlexWeight: 1; Text: \"%s\"; Style: (FontSize: 12, TextColor: #e0e0e0, VerticalAlignment: Center); } " +
-                        "Label { Anchor: (Width: 70); Text: \"%s\"; Style: (FontSize: 11, TextColor: %s, HorizontalAlignment: Center, VerticalAlignment: Center); } }",
-                        bgColor, formatFlagName(flag.getName()), valueStr, textColor
-                    );
-
-                    cmd.appendInline("#ActiveFlagsList", flagCode);
+                    displayFlagRow(cmd, entry.getKey(), entry.getValue(), null);
                 }
+            }
+
+            // 2. OVERRIDES DE GROUPES
+            Map<String, Map<RegionFlag, Object>> groupOverrides = region.getOverrideCache().getAllGroupOverrides();
+            if (!groupOverrides.isEmpty()) {
+                cmd.appendInline("#ActiveFlagsList",
+                    "Label { Text: \"OVERRIDES GROUPES\"; Anchor: (Height: 26, Bottom: 4, Top: 8); Style: (FontSize: 11, TextColor: #d77dff, RenderBold: true, RenderUppercase: true); }");
+
+                for (Map.Entry<String, Map<RegionFlag, Object>> groupEntry : groupOverrides.entrySet()) {
+                    String groupName = groupEntry.getKey();
+                    for (Map.Entry<RegionFlag, Object> flagEntry : groupEntry.getValue().entrySet()) {
+                        displayFlagRow(cmd, flagEntry.getKey(), flagEntry.getValue(), "G: " + groupName);
+                    }
+                }
+            }
+
+            // 3. OVERRIDES DE JOUEURS
+            Map<UUID, Map<RegionFlag, Object>> playerOverrides = region.getOverrideCache().getAllPlayerOverrides();
+            if (!playerOverrides.isEmpty()) {
+                cmd.appendInline("#ActiveFlagsList",
+                    "Label { Text: \"OVERRIDES JOUEURS\"; Anchor: (Height: 26, Bottom: 4, Top: 8); Style: (FontSize: 11, TextColor: #6ab4ff, RenderBold: true, RenderUppercase: true); }");
+
+                for (Map.Entry<UUID, Map<RegionFlag, Object>> playerEntry : playerOverrides.entrySet()) {
+                    String playerName = getPlayerName(playerEntry.getKey());
+                    for (Map.Entry<RegionFlag, Object> flagEntry : playerEntry.getValue().entrySet()) {
+                        displayFlagRow(cmd, flagEntry.getKey(), flagEntry.getValue(), "P: " + playerName);
+                    }
+                }
+            }
+
+            // Si aucun flag configuré
+            if (flags.isEmpty() && groupOverrides.isEmpty() && playerOverrides.isEmpty()) {
+                cmd.appendInline("#ActiveFlagsList",
+                    "Label { Text: \"Aucun flag configure\"; Anchor: (Height: 30); Style: (FontSize: 12, TextColor: #808080, HorizontalAlignment: Center); }");
             }
         } catch (Exception e) {
             plugin.log(java.util.logging.Level.SEVERE, "loadEditorData: Error loading flags: " + e.getMessage());
@@ -729,6 +793,33 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
     private void loadPlayerFlagsTab(UICommandBuilder cmd, UIEventBuilder event, RegionImpl region) {
         cmd.clear("#PlayerFlagsList");
+        cmd.clear("#PlayerButtonsContainer");
+
+        // Charger la liste des joueurs ayant des overrides
+        Set<UUID> playersWithOverrides = region.getOverrideCache().getPlayersWithOverrides();
+
+        if (!playersWithOverrides.isEmpty()) {
+            int idx = 0;
+            for (UUID playerUuid : playersWithOverrides) {
+                String playerName = getPlayerName(playerUuid);
+                String btnId = "PlayerBtn" + idx;
+                boolean isSelected = playerUuid.equals(selectedPlayerUuid);
+                String bgColor = isSelected ? "#2a5a2a" : "#1f2d3f";
+                String textColor = isSelected ? "#ffffff" : "#96a9be";
+
+                String btnCode = String.format(
+                    "TextButton #%s { Anchor: (Height: 30, Right: 5); Padding: (Horizontal: 12); Text: \"%s\"; Style: TextButtonStyle(Default: (Background: %s, LabelStyle: (FontSize: 11, TextColor: %s, HorizontalAlignment: Center, VerticalAlignment: Center)), Hovered: (Background: #3a6a3a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))); }",
+                    btnId, sanitize(playerName), bgColor, textColor
+                );
+                cmd.appendInline("#PlayerButtonsContainer", btnCode);
+                event.addEventBinding(CustomUIEventBindingType.Activating, "#" + btnId,
+                    EventData.of("SelectPlayer", playerUuid.toString()), false);
+                idx++;
+            }
+        } else {
+            cmd.appendInline("#PlayerButtonsContainer",
+                "Label { Text: \"Aucun joueur avec overrides\"; Anchor: (Height: 30); Style: (FontSize: 11, TextColor: #606060, HorizontalAlignment: Center, VerticalAlignment: Center); }");
+        }
 
         // Afficher les infos du joueur sélectionné
         if (selectedPlayerUuid != null && selectedPlayerName != null) {
@@ -740,7 +831,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         } else {
             cmd.set("#SelectedPlayerInfo.Visible", false);
             cmd.appendInline("#PlayerFlagsList",
-                "Label { Text: \"Recherchez un joueur ci dessus\"; Anchor: (Height: 40); Style: (FontSize: 13, TextColor: #808080, HorizontalAlignment: Center, VerticalAlignment: Center); }");
+                "Label { Text: \"Selectionnez un joueur ci dessus\"; Anchor: (Height: 40); Style: (FontSize: 13, TextColor: #808080, HorizontalAlignment: Center, VerticalAlignment: Center); }");
         }
     }
 
@@ -920,6 +1011,21 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             return;
         }
 
+        // Sélection de joueur (onglet joueur)
+        if (data.selectPlayer != null) {
+            try {
+                UUID uuid = UUID.fromString(data.selectPlayer);
+                selectedPlayerUuid = uuid;
+                selectedPlayerName = getPlayerName(uuid);
+            } catch (IllegalArgumentException e) {
+                plugin.log(java.util.logging.Level.WARNING, "Invalid UUID for player selection: " + data.selectPlayer);
+            }
+            // Flags utilise appendInline, donc rebuild()
+            currentPage = "flags";
+            rebuild();
+            return;
+        }
+
         // Gestion des flags de région
         if (data.setFlag != null) {
             handleSetFlag(data.setFlag, player);
@@ -964,8 +1070,6 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             case "teleport" -> handleTeleport(player);
 
             case "showZone" -> handleShowZone(player);
-
-            case "setSelection" -> handleSetSelection(player);
 
             case "deleteRegion" -> {
                 confirmDelete = true;
@@ -1056,6 +1160,28 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
                 currentPage = "flags";
                 rebuild();
             }
+
+            case "changePriority" -> {
+                handleChangePriority(data, player);
+                // Editor utilise appendInline, donc rebuild()
+                currentPage = "editor";
+                rebuild();
+            }
+
+            case "updateFromSelection" -> {
+                handleUpdateFromSelection(player);
+                // Editor utilise appendInline, donc rebuild()
+                currentPage = "editor";
+                rebuild();
+            }
+
+            case "updateCylinder" -> {
+                plugin.log(java.util.logging.Level.INFO, "[DEBUG] updateCylinder action triggered!");
+                handleUpdateCylinder(data, player);
+                // Editor utilise appendInline, donc rebuild()
+                currentPage = "editor";
+                rebuild();
+            }
         }
     }
 
@@ -1135,28 +1261,6 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             player.sendMessage(ColorUtil.parse("&7Forme: " + region.getShape().getShapeType()));
         } else {
             player.sendMessage(ColorUtil.parse("&7Visualisation desactivee."));
-        }
-    }
-
-    private void handleSetSelection(Player player) {
-        if (selectedRegionName == null) return;
-
-        Optional<RegionImpl> regionOpt = regionService.getRegion(worldName, selectedRegionName).join();
-        if (regionOpt.isEmpty()) return;
-
-        RegionImpl region = regionOpt.get();
-
-        // Pas de sélection pour la région globale
-        if (RegionService.isGlobalRegion(region)) {
-            player.sendMessage(ColorUtil.parse("&cImpossible de copier la selection de la region globale."));
-            return;
-        }
-
-        boolean success = SelectionHelper.setSelection(player, region.getBounds());
-        if (success) {
-            player.sendMessage(ColorUtil.parse("&aSelection copiee pour '" + region.getName() + "'!"));
-        } else {
-            player.sendMessage(ColorUtil.parse("&cImpossible de copier la selection"));
         }
     }
 
@@ -1488,9 +1592,177 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         }
     }
 
+    private void handleChangePriority(PageData data, Player player) {
+        if (selectedRegionName == null) {
+            player.sendMessage(ColorUtil.parse("&cAucune region selectionnee."));
+            return;
+        }
+
+        if (data.newPriority == null) {
+            player.sendMessage(ColorUtil.parse("&cVeuillez entrer une priorite valide."));
+            return;
+        }
+
+        Optional<RegionImpl> regionOpt = regionService.getRegion(worldName, selectedRegionName).join();
+        if (regionOpt.isEmpty()) {
+            player.sendMessage(ColorUtil.parse("&cRegion introuvable."));
+            return;
+        }
+
+        RegionImpl region = regionOpt.get();
+        int newPriority = data.newPriority;
+        int oldPriority = region.getPriority();
+
+        try {
+            regionService.setPriority(region, newPriority).join();
+            player.sendMessage(ColorUtil.parse("&aPriorite de '" + region.getName() + "' changee: " + oldPriority + " -> " + newPriority));
+        } catch (Exception e) {
+            player.sendMessage(ColorUtil.parse("&cErreur lors du changement de priorite: " + e.getMessage()));
+        }
+    }
+
+    private void handleUpdateFromSelection(Player player) {
+        if (selectedRegionName == null) {
+            player.sendMessage(ColorUtil.parse("&cAucune region selectionnee."));
+            return;
+        }
+
+        Optional<RegionImpl> regionOpt = regionService.getRegion(worldName, selectedRegionName).join();
+        if (regionOpt.isEmpty()) {
+            player.sendMessage(ColorUtil.parse("&cRegion introuvable."));
+            return;
+        }
+
+        RegionImpl region = regionOpt.get();
+
+        // Vérifier que c'est bien un cuboid
+        if (!(region.getShape() instanceof CuboidShape)) {
+            player.sendMessage(ColorUtil.parse("&cCette region n'est pas un cuboid."));
+            return;
+        }
+
+        // Obtenir la sélection du joueur
+        Optional<BoundingBox> selectionOpt = SelectionHelper.getSelectionAsBoundingBox(player);
+        if (selectionOpt.isEmpty()) {
+            player.sendMessage(ColorUtil.parse("&cVous n'avez pas de selection active. Utilisez /pos1 et /pos2."));
+            return;
+        }
+
+        BoundingBox selection = selectionOpt.get();
+
+        // Créer une nouvelle forme cuboid avec la sélection
+        CuboidShape newShape = new CuboidShape(selection);
+
+        try {
+            regionService.redefineRegion(region, newShape).join();
+            player.sendMessage(ColorUtil.parse("&aForme de la region '" + region.getName() + "' mise a jour depuis votre selection."));
+        } catch (Exception e) {
+            player.sendMessage(ColorUtil.parse("&cErreur lors de la mise a jour de la forme: " + e.getMessage()));
+        }
+    }
+
+    private void handleUpdateCylinder(PageData data, Player player) {
+        plugin.log(java.util.logging.Level.INFO, "[DEBUG] handleUpdateCylinder called! selectedRegionName=" + selectedRegionName);
+        plugin.log(java.util.logging.Level.INFO, "[DEBUG] newRadius=" + data.newRadius + ", newHeight=" + data.newHeight);
+
+        if (selectedRegionName == null) {
+            player.sendMessage(ColorUtil.parse("&cAucune region selectionnee."));
+            return;
+        }
+
+        if (data.newRadius == null || data.newHeight == null) {
+            player.sendMessage(ColorUtil.parse("&cVeuillez entrer un rayon et une hauteur valides."));
+            return;
+        }
+
+        // Les valeurs sont déjà des Integer, pas besoin de parser
+        int newRadius = data.newRadius;
+        int newHeight = data.newHeight;
+
+        plugin.log(java.util.logging.Level.INFO, "handleUpdateCylinder: Attempting to update cylinder with radius=" + newRadius + ", height=" + newHeight);
+
+        Optional<RegionImpl> regionOpt = regionService.getRegion(worldName, selectedRegionName).join();
+        if (regionOpt.isEmpty()) {
+            player.sendMessage(ColorUtil.parse("&cRegion introuvable."));
+            return;
+        }
+
+        RegionImpl region = regionOpt.get();
+
+        // Vérifier que c'est bien un cylindre
+        if (!(region.getShape() instanceof CylinderShape oldCyl)) {
+            player.sendMessage(ColorUtil.parse("&cCette region n'est pas un cylindre."));
+            return;
+        }
+
+        if (newRadius <= 0 || newHeight <= 0) {
+            player.sendMessage(ColorUtil.parse("&cLe rayon et la hauteur doivent etre positifs."));
+            return;
+        }
+
+        // Créer un nouveau cylindre avec les mêmes coordonnées de centre mais nouveau rayon/hauteur
+        CylinderShape newShape = new CylinderShape(
+            oldCyl.getCenterX(),
+            oldCyl.getCenterY(),
+            oldCyl.getCenterZ(),
+            newRadius,
+            newHeight,
+            oldCyl.getRadiusAdjust()
+        );
+
+        try {
+            regionService.redefineRegion(region, newShape).join();
+            player.sendMessage(ColorUtil.parse("&aForme du cylindre '" + region.getName() + "' mise a jour: rayon=" + newRadius + ", hauteur=" + newHeight));
+        } catch (Exception e) {
+            player.sendMessage(ColorUtil.parse("&cErreur lors de la mise a jour du cylindre: " + e.getMessage()));
+        }
+    }
+
     // ===========================================
     // HELPERS
     // ===========================================
+
+    /**
+     * Affiche une ligne de flag dans la liste des flags actifs.
+     * @param cmd Command builder
+     * @param flag Le flag à afficher
+     * @param value La valeur du flag
+     * @param context Contexte (null pour flag de base, "G: rankName" pour groupe, "P: playerName" pour joueur)
+     */
+    private void displayFlagRow(UICommandBuilder cmd, RegionFlag flag, Object value, String context) {
+        String valueStr;
+        String bgColor;
+        String textColor;
+
+        if (value instanceof Boolean boolVal) {
+            valueStr = boolVal ? "ALLOW" : "DENY";
+            bgColor = boolVal ? "#1a3a1a" : "#3a1a1a";
+            textColor = boolVal ? "#5adf5a" : "#df5a5a";
+        } else if ("members".equals(value)) {
+            valueStr = "MEMBRES";
+            bgColor = "#2a2a1a";
+            textColor = "#dfdf5a";
+        } else {
+            valueStr = value != null ? sanitize(value.toString()) : "null";
+            bgColor = "#1a2a3a";
+            textColor = "#6ab4ff";
+        }
+
+        // Nom du flag avec contexte si présent
+        String flagDisplayName = formatFlagName(flag.getName());
+        if (context != null && !context.isEmpty()) {
+            flagDisplayName = flagDisplayName + " [" + sanitize(context) + "]";
+        }
+
+        String flagCode = String.format(
+            "Group { Anchor: (Height: 32, Bottom: 3); LayoutMode: Left; Background: (Color: %s); Padding: (Horizontal: 10, Vertical: 4); " +
+            "Label { FlexWeight: 1; Text: \"%s\"; Style: (FontSize: 11, TextColor: #e0e0e0, VerticalAlignment: Center); } " +
+            "Label { Anchor: (Width: 70); Text: \"%s\"; Style: (FontSize: 11, TextColor: %s, HorizontalAlignment: Center, VerticalAlignment: Center); } }",
+            bgColor, flagDisplayName, valueStr, textColor
+        );
+
+        cmd.appendInline("#ActiveFlagsList", flagCode);
+    }
 
     private Player getPlayer() {
         if (currentRef == null || currentStore == null) return null;
@@ -1584,9 +1856,13 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             .addField(new KeyedCodec<>("@MemberName", Codec.STRING), (d, v) -> d.memberName = v, d -> d.memberName)
             .addField(new KeyedCodec<>("@CylinderRadius", Codec.INTEGER), (d, v) -> d.cylinderRadius = v, d -> d.cylinderRadius)
             .addField(new KeyedCodec<>("@CylinderHeight", Codec.INTEGER), (d, v) -> d.cylinderHeight = v, d -> d.cylinderHeight)
+            .addField(new KeyedCodec<>("@NewPriority", Codec.INTEGER), (d, v) -> d.newPriority = v, d -> d.newPriority)
+            .addField(new KeyedCodec<>("@NewRadius", Codec.INTEGER), (d, v) -> d.newRadius = v, d -> d.newRadius)
+            .addField(new KeyedCodec<>("@NewHeight", Codec.INTEGER), (d, v) -> d.newHeight = v, d -> d.newHeight)
             // Nouveaux champs pour les onglets flags
             .addField(new KeyedCodec<>("FlagsTab", Codec.STRING), (d, v) -> d.flagsTab = v, d -> d.flagsTab)
             .addField(new KeyedCodec<>("SelectRank", Codec.STRING), (d, v) -> d.selectRank = v, d -> d.selectRank)
+            .addField(new KeyedCodec<>("SelectPlayer", Codec.STRING), (d, v) -> d.selectPlayer = v, d -> d.selectPlayer)
             .addField(new KeyedCodec<>("SetGroupFlag", Codec.STRING), (d, v) -> d.setGroupFlag = v, d -> d.setGroupFlag)
             .addField(new KeyedCodec<>("SetPlayerFlag", Codec.STRING), (d, v) -> d.setPlayerFlag = v, d -> d.setPlayerFlag)
             .addField(new KeyedCodec<>("@PlayerSearch", Codec.STRING), (d, v) -> d.playerSearch = v, d -> d.playerSearch)
@@ -1603,9 +1879,13 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         public String memberName;
         public Integer cylinderRadius;  // Changé de String à Integer
         public Integer cylinderHeight;  // Changé de String à Integer
+        public Integer newPriority;  // Nouvelle priorité à définir
+        public Integer newRadius;  // Nouveau rayon pour cylindre
+        public Integer newHeight;  // Nouvelle hauteur pour cylindre
         // Nouveaux champs pour les onglets flags
         public String flagsTab;
         public String selectRank;
+        public String selectPlayer;
         public String setGroupFlag;
         public String setPlayerFlag;
         public String playerSearch;

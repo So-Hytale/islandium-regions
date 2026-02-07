@@ -9,6 +9,7 @@ import com.islandium.regions.database.RegionFlagRepository;
 import com.islandium.regions.database.RegionGroupFlagRepository;
 import com.islandium.regions.database.RegionMemberRepository;
 import com.islandium.regions.database.RegionPlayerFlagRepository;
+import com.islandium.regions.database.BypassRepository;
 import com.islandium.regions.database.RegionRepository;
 import com.islandium.regions.event.BreakBlockEventSystem;
 import com.islandium.regions.event.DamageEventListener;
@@ -19,6 +20,7 @@ import com.islandium.regions.event.PlayerMovementTracker;
 import com.islandium.regions.service.RegionService;
 import com.islandium.regions.spatial.ChunkBasedSpatialIndex;
 import com.islandium.regions.spatial.SpatialIndex;
+import com.islandium.regions.util.RegionPermissionChecker;
 import com.islandium.regions.visualization.RegionVisualizationService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,6 +48,7 @@ public class RegionsPlugin extends JavaPlugin {
     private RegionFlagRepository flagRepository;
     private RegionGroupFlagRepository groupFlagRepository;
     private RegionPlayerFlagRepository playerFlagRepository;
+    private BypassRepository bypassRepository;
 
     // Services
     private SpatialIndex spatialIndex;
@@ -135,10 +138,15 @@ public class RegionsPlugin extends JavaPlugin {
             this.flagRepository = new RegionFlagRepository(sql);
             this.groupFlagRepository = new RegionGroupFlagRepository(sql);
             this.playerFlagRepository = new RegionPlayerFlagRepository(sql);
+            this.bypassRepository = new BypassRepository(sql);
 
             // 4. Créer les tables
             log(Level.INFO, "Running database migrations...");
             runMigrations().join();
+
+            // 4b. Charger les bypass depuis la DB
+            log(Level.INFO, "Loading bypass states...");
+            RegionPermissionChecker.init(bypassRepository);
 
             // 5. Initialiser le spatial index
             log(Level.INFO, "Initializing spatial index...");
@@ -198,6 +206,7 @@ public class RegionsPlugin extends JavaPlugin {
             .thenCompose(v -> flagRepository.createTables())
             .thenCompose(v -> groupFlagRepository.createTables())
             .thenCompose(v -> playerFlagRepository.createTables())
+            .thenCompose(v -> bypassRepository.createTables())
             .thenRun(() -> log(Level.INFO, "Database migrations completed!"));
     }
 

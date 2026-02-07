@@ -31,6 +31,7 @@ import com.islandium.regions.shape.CuboidShape;
 import com.islandium.regions.shape.CylinderShape;
 import com.islandium.regions.shape.GlobalShape;
 import com.islandium.regions.shape.RegionShape;
+import com.islandium.regions.util.RegionPermissionChecker;
 import com.islandium.regions.util.SelectionHelper;
 import com.islandium.regions.visualization.RegionVisualizationService;
 
@@ -110,6 +111,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         event.addEventBinding(CustomUIEventBindingType.Activating, "#NavBtnHome", EventData.of("NavTo", "home"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#NavBtnList", EventData.of("NavTo", "list"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#NavBtnCreate", EventData.of("NavTo", "create"), false);
+        event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnToggleBypass", EventData.of("Action", "toggleBypass"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#CloseButton", EventData.of("Action", "close"), false);
 
         // Page Home - Global region
@@ -132,8 +134,10 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnShowZone", EventData.of("Action", "showZone"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnChangePriority",
             EventData.of("Action", "changePriority").append("@NewPriority", "#InputNewPriority.Value"), false);
-        // Note: #BtnUpdateFromSelection et #BtnUpdateCylinder sont créés dynamiquement avec appendInline
-        // Les event bindings sont ajoutés dans loadEditorData après leur création
+        event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnUpdateCylinder",
+            EventData.of("Action", "updateCylinder")
+                .append("@NewRadius", "#EditorCylinderRadius.Value")
+                .append("@NewHeight", "#EditorCylinderHeight.Value"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnEditFlags", EventData.of("NavTo", "flags"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnEditMembers", EventData.of("NavTo", "members"), false);
         event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnDeleteRegion", EventData.of("Action", "deleteRegion"), false);
@@ -178,8 +182,10 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         cmd.set("#PageMembers.Visible", false);
 
         // Mettre à jour les styles des onglets de navigation
-        // TEMPORAIREMENT DESACTIVE - cause potentielle du crash client
-        // updateNavBarStyle(cmd, page);
+        updateNavBarStyle(cmd, page);
+
+        // Mettre à jour l'état du bouton bypass
+        updateBypassButton(cmd);
 
         // Afficher la page demandee et charger ses donnees
         switch (page) {
@@ -212,6 +218,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
     /**
      * Met à jour le style des boutons de navigation selon la page active.
+     * Utilise Style.Default.Background et Style.Default.LabelStyle pour les TextButton.
      */
     private void updateNavBarStyle(UICommandBuilder cmd, String activePage) {
         // Couleurs: actif = #3a5a7a, inactif = #1f2d3f
@@ -222,19 +229,42 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         boolean createActive = "create".equals(activePage);
 
         // Bouton Accueil
-        cmd.set("#NavBtnHome.Background.Color", homeActive ? "#3a5a7a" : "#1f2d3f");
-        cmd.set("#NavBtnHome.Label.Style.TextColor", homeActive ? "#ffffff" : "#96a9be");
-        cmd.set("#NavBtnHome.Label.Style.RenderBold", homeActive);
+        cmd.set("#NavBtnHome.Style.Default.Background", homeActive ? "#3a5a7a" : "#1f2d3f");
+        cmd.set("#NavBtnHome.Style.Default.LabelStyle.TextColor", homeActive ? "#ffffff" : "#96a9be");
+        cmd.set("#NavBtnHome.Style.Default.LabelStyle.RenderBold", homeActive);
 
         // Bouton Liste
-        cmd.set("#NavBtnList.Background.Color", listActive ? "#3a5a7a" : "#1f2d3f");
-        cmd.set("#NavBtnList.Label.Style.TextColor", listActive ? "#ffffff" : "#96a9be");
-        cmd.set("#NavBtnList.Label.Style.RenderBold", listActive);
+        cmd.set("#NavBtnList.Style.Default.Background", listActive ? "#3a5a7a" : "#1f2d3f");
+        cmd.set("#NavBtnList.Style.Default.LabelStyle.TextColor", listActive ? "#ffffff" : "#96a9be");
+        cmd.set("#NavBtnList.Style.Default.LabelStyle.RenderBold", listActive);
 
         // Bouton Creer
-        cmd.set("#NavBtnCreate.Background.Color", createActive ? "#3a5a7a" : "#1f2d3f");
-        cmd.set("#NavBtnCreate.Label.Style.TextColor", createActive ? "#ffffff" : "#96a9be");
-        cmd.set("#NavBtnCreate.Label.Style.RenderBold", createActive);
+        cmd.set("#NavBtnCreate.Style.Default.Background", createActive ? "#3a5a7a" : "#1f2d3f");
+        cmd.set("#NavBtnCreate.Style.Default.LabelStyle.TextColor", createActive ? "#ffffff" : "#96a9be");
+        cmd.set("#NavBtnCreate.Style.Default.LabelStyle.RenderBold", createActive);
+    }
+
+    /**
+     * Met à jour l'apparence du bouton bypass selon l'état actuel.
+     */
+    private void updateBypassButton(UICommandBuilder cmd) {
+        Player player = getPlayer();
+        if (player == null) return;
+
+        boolean bypassing = RegionPermissionChecker.isBypassing(player.getUuid());
+        if (bypassing) {
+            cmd.set("#BtnToggleBypass.Text", "BYPASS: ON");
+            cmd.set("#BtnToggleBypass.Style.Default.Background", "#1a3a1a");
+            cmd.set("#BtnToggleBypass.Style.Default.LabelStyle.TextColor", "#5adf5a");
+            cmd.set("#BtnToggleBypass.Style.Hovered.Background", "#2a4a2a");
+            cmd.set("#BtnToggleBypass.Style.Hovered.LabelStyle.TextColor", "#7aff7a");
+        } else {
+            cmd.set("#BtnToggleBypass.Text", "BYPASS: OFF");
+            cmd.set("#BtnToggleBypass.Style.Default.Background", "#3a1a1a");
+            cmd.set("#BtnToggleBypass.Style.Default.LabelStyle.TextColor", "#ff6666");
+            cmd.set("#BtnToggleBypass.Style.Hovered.Background", "#4a2a2a");
+            cmd.set("#BtnToggleBypass.Style.Hovered.LabelStyle.TextColor", "#ff8888");
+        }
     }
 
     // ===========================================
@@ -326,30 +356,66 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             cmd.appendInline("#RegionsList",
                 "Label { Text: \"Aucune region dans ce monde\"; Anchor: (Height: 40); Style: (FontSize: 13, TextColor: #808080, HorizontalAlignment: Center, VerticalAlignment: Center); }");
         } else {
-            for (int i = 0; i < regions.size(); i++) {
-                RegionImpl region = regions.get(i);
+            // Trier par priorité décroissante
+            List<RegionImpl> sorted = new ArrayList<>(regions);
+            sorted.sort((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+
+            for (int i = 0; i < sorted.size(); i++) {
+                RegionImpl region = sorted.get(i);
                 boolean isOwner = playerUuid != null && region.isOwner(playerUuid);
-                String rowId = "RR" + i;  // ID court pour éviter les problèmes
+                boolean isMember = playerUuid != null && region.isMember(playerUuid);
+                String rowId = "RR" + i;
                 String bgColor = isOwner ? "#1a2a3a" : "#151d28";
                 RegionShape shape = region.getShape();
 
-                // Info forme simplifiée
-                String shapeInfo = shape instanceof CylinderShape ? "cyl" : "cube";
+                boolean isCylinder = shape instanceof CylinderShape;
+                String shapeLabel = isCylinder ? "CYL" : "CUBE";
+                String shapeBg = isCylinder ? "#2a4a5a" : "#2a5a2a";
 
-                // Code UI minimal - Button simple sans texte inline
-                // IMPORTANT: Utiliser Anchor: (Height: X, Bottom: Y) et non Margin: (Bottom: Y)
+                // Row avec layout Left: [Indicateur owner | Infos | Badge forme | Priorité]
                 String rowCode = String.format(
-                    "Button #%s { Anchor: (Height: 40, Bottom: 3); Background: (Color: %s); Padding: (Horizontal: 12); " +
-                    "Label #L { Style: (FontSize: 12, TextColor: #e0e0e0, VerticalAlignment: Center); } }",
-                    rowId, bgColor
+                    "Button #%s { Anchor: (Height: 52, Bottom: 4); Background: (Color: %s); Padding: (Horizontal: 10, Vertical: 6); LayoutMode: Left; " +
+                    // Barre colorée gauche (indicateur owner/member)
+                    "Group { Anchor: (Width: 3, Height: 40); Background: (Color: %s); } " +
+                    // Spacer
+                    "Group { Anchor: (Width: 10); } " +
+                    // Bloc info (nom + volume)
+                    "Group { FlexWeight: 1; LayoutMode: Top; " +
+                        "Label #N { Anchor: (Height: 22); Style: (FontSize: 13, TextColor: #e0e0e0, VerticalAlignment: Center, RenderBold: true); } " +
+                        "Label #V { Anchor: (Height: 18); Style: (FontSize: 10, TextColor: #707a88, VerticalAlignment: Center); } " +
+                    "} " +
+                    // Badge forme
+                    "Group { Anchor: (Width: 50, Height: 22); Background: (Color: %s); " +
+                        "Label #S { Style: (FontSize: 10, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true); } " +
+                    "} " +
+                    // Spacer
+                    "Group { Anchor: (Width: 8); } " +
+                    // Priorité
+                    "Group { Anchor: (Width: 45); LayoutMode: Top; " +
+                        "Label { Text: \"PRI\"; Anchor: (Height: 16); Style: (FontSize: 9, TextColor: #606a78, HorizontalAlignment: Center); } " +
+                        "Label #P { Anchor: (Height: 24); Style: (FontSize: 14, TextColor: #ffd700, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true); } " +
+                    "} " +
+                    "}",
+                    rowId, bgColor,
+                    isOwner ? "#ffd700" : (isMember ? "#00bfff" : "#3a3a4a"),
+                    shapeBg
                 );
 
                 cmd.appendInline("#RegionsList", rowCode);
 
-                // Définir le texte via cmd.set() APRES l'ajout
+                // Définir les textes via cmd.set() APRÈS l'ajout
                 String safeName = sanitize(region.getName());
                 if (safeName.isEmpty()) safeName = "Region " + i;
-                cmd.set("#" + rowId + " #L.Text", safeName + " " + shapeInfo + " P" + region.getPriority());
+                cmd.set("#" + rowId + " #N.Text", safeName);
+
+                // Info volume + membres
+                long volume = shape.getVolume();
+                int ownerCount = region.getOwners().size();
+                int memberCount = region.getMembers().size();
+                cmd.set("#" + rowId + " #V.Text", formatNumber(volume) + " blocs | " + ownerCount + " own. " + memberCount + " mbr.");
+
+                cmd.set("#" + rowId + " #S.Text", shapeLabel);
+                cmd.set("#" + rowId + " #P.Text", String.valueOf(region.getPriority()));
 
                 event.addEventBinding(CustomUIEventBindingType.Activating, "#" + rowId,
                     EventData.of("SelectRegion", region.getName()), false);
@@ -456,45 +522,16 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             cmd.set("#EditorPriority.Text", "Priorite: " + priority);
             cmd.set("#InputNewPriority.Value", priority);
 
-            // Reconstruire dynamiquement les contrôles selon le type de forme
-            cmd.clear("#ModifyShapeBox");
-
+            // Mettre à jour les valeurs selon le type de forme - exactement comme Priorité
             if (shape instanceof CylinderShape cyl) {
                 int radius = cyl.getRadius();
                 int height = cyl.getHeight();
-                plugin.log(java.util.logging.Level.INFO, "Loading cylinder values: radius=" + radius + ", height=" + height);
 
-                // UI avec Groups horizontaux pour Rayon et Hauteur
-                String cylinderUI =
-                    "Label { Text: \"Forme: Cylindre\"; Anchor: (Height: 18); Style: (FontSize: 12, TextColor: #6ab4ff, RenderBold: true); } " +
-                    "Group { Anchor: (Height: 26, Top: 4); LayoutMode: Left; " +
-                    "Label { Text: \"Rayon:\"; Anchor: (Width: 60, Height: 26); Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); } " +
-                    "TextField #InputCylinderRadius { FlexWeight: 1; Anchor: (Height: 26); Value: \"" + radius + "\"; } " +
-                    "} " +
-                    "Group { Anchor: (Height: 26, Top: 4); LayoutMode: Left; " +
-                    "Label { Text: \"Hauteur:\"; Anchor: (Width: 60, Height: 26); Style: (FontSize: 10, TextColor: #cccccc, VerticalAlignment: Center); } " +
-                    "TextField #InputCylinderHeight { FlexWeight: 1; Anchor: (Height: 26); Value: \"" + height + "\"; } " +
-                    "} " +
-                    "TextButton #BtnUpdateCylinder { " +
-                    "Anchor: (Height: 32, Top: 6); " +
-                    "Text: \"METTRE A JOUR\"; " +
-                    "Style: TextButtonStyle(" +
-                    "Default: (Background: #5a4a6a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true)), " +
-                    "Hovered: (Background: #6a5a7a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center, RenderBold: true))" +
-                    "); " +
-                    "}";
+                cmd.set("#LabelShapeType.Text", "Forme: Cylindre");
+                cmd.set("#EditorCylinderRadius.Value", radius);
+                cmd.set("#EditorCylinderHeight.Value", height);
 
-                cmd.appendInline("#ModifyShapeBox", cylinderUI);
-
-                // Debug: Log les IDs créés
-                plugin.log(java.util.logging.Level.INFO, "[DEBUG] Created TextField #InputCylinderRadius with initial value: " + radius);
-                plugin.log(java.util.logging.Level.INFO, "[DEBUG] Created TextField #InputCylinderHeight with initial value: " + height);
-
-                // Ajouter l'event binding pour le bouton
-                event.addEventBinding(CustomUIEventBindingType.Activating, "#BtnUpdateCylinder",
-                    EventData.of("Action", "updateCylinder")
-                        .append("@NewRadius", "#InputCylinderRadius.Value")
-                        .append("@NewHeight", "#InputCylinderHeight.Value"), false);
+                plugin.log(java.util.logging.Level.INFO, "Cylinder shape loaded: radius=" + radius + ", height=" + height);
 
             } else if (shape instanceof CuboidShape cuboid) {
                 BoundingBox bounds = cuboid.getBounds();
@@ -502,9 +539,9 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
                     bounds.getMinX(), bounds.getMinY(), bounds.getMinZ(),
                     bounds.getMaxX(), bounds.getMaxY(), bounds.getMaxZ());
 
-                String cuboidUI = "Label { Text: \"" + boundsText + "\"; Anchor: (Height: 40); Style: (FontSize: 14, TextColor: #ffffff); }";
+                cmd.set("#LabelShapeType.Text", "Forme: Cuboid - " + boundsText);
 
-                cmd.appendInline("#ModifyShapeBox", cuboidUI);
+                plugin.log(java.util.logging.Level.INFO, "Cuboid shape loaded");
             }
 
         } catch (Exception e) {
@@ -1066,6 +1103,18 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         switch (data.action) {
             case "close" -> close();
+
+            case "toggleBypass" -> {
+                boolean nowBypassing = RegionPermissionChecker.toggleBypass(player.getUuid());
+                if (nowBypassing) {
+                    player.sendMessage(ColorUtil.parse("&a&lBYPASS ACTIVE &7- Vous ignorez toutes les protections de regions."));
+                } else {
+                    player.sendMessage(ColorUtil.parse("&c&lBYPASS DESACTIVE &7- Les protections de regions sont actives."));
+                }
+                // Mettre à jour le bouton sans changer de page
+                updateBypassButton(cmd);
+                sendUpdate(cmd, event, false);
+            }
 
             case "teleport" -> handleTeleport(player);
 

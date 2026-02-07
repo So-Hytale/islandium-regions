@@ -1,6 +1,5 @@
 package com.islandium.regions.util;
 
-import com.hypixel.hytale.protocol.GameMode;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.islandium.core.api.permission.PlayerPermissions;
 import com.islandium.core.api.permission.Rank;
@@ -9,23 +8,54 @@ import com.islandium.regions.model.RegionImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utilitaire pour vérifier les permissions dans les régions.
- * Centralise la logique de bypass (OP, creative, membres).
+ * Le bypass est géré par un toggle manuel par joueur (via le GUI).
  *
  * Ordre de résolution des flags (priorité décroissante):
- * 1. Override joueur spécifique
- * 2. Override groupe (rank) - par priorité de rank décroissante
- * 3. Flag de région (valeur par défaut)
+ * 1. Bypass toggle actif (passe tout)
+ * 2. Override joueur spécifique
+ * 3. Override groupe (rank) - par priorité de rank décroissante
+ * 4. Flag de région (valeur par défaut)
  */
 public final class RegionPermissionChecker {
 
     private RegionPermissionChecker() {
         // Utility class
+    }
+
+    // === Bypass toggle par joueur ===
+    private static final Set<UUID> bypassPlayers = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Active ou désactive le mode bypass pour un joueur.
+     * @return true si le bypass est maintenant actif, false sinon
+     */
+    public static boolean toggleBypass(UUID playerUuid) {
+        if (bypassPlayers.contains(playerUuid)) {
+            bypassPlayers.remove(playerUuid);
+            return false;
+        } else {
+            bypassPlayers.add(playerUuid);
+            return true;
+        }
+    }
+
+    /**
+     * Vérifie si un joueur a le mode bypass actif.
+     */
+    public static boolean isBypassing(UUID playerUuid) {
+        return bypassPlayers.contains(playerUuid);
+    }
+
+    /**
+     * Désactive le bypass pour un joueur (ex: à la déconnexion).
+     */
+    public static void removeBypassing(UUID playerUuid) {
+        bypassPlayers.remove(playerUuid);
     }
 
     /**
@@ -34,12 +64,12 @@ public final class RegionPermissionChecker {
     public enum PermissionResult {
         ALLOWED,    // Action autorisée
         DENIED,     // Action refusée
-        BYPASSED    // Action autorisée via bypass (OP, creative, membre)
+        BYPASSED    // Action autorisée via bypass (toggle ou membre)
     }
 
     /**
      * Vérifie si un joueur peut effectuer une action basée sur un flag.
-     * Utilise la résolution par priorité: Joueur > Groupe > Région.
+     * Utilise la résolution par priorité: Bypass > Joueur > Groupe > Région.
      *
      * @param region La région à vérifier
      * @param player Le joueur (peut être null)
@@ -59,8 +89,13 @@ public final class RegionPermissionChecker {
 
         UUID uuid = playerUuid != null ? playerUuid : (player != null ? player.getUuid() : null);
 
+        // === 0. Vérifier le bypass toggle ===
+        if (uuid != null && bypassPlayers.contains(uuid)) {
+            return PermissionResult.BYPASSED;
+        }
+
         // === 1. Vérifier override JOUEUR (priorité max) ===
-        // Les overrides joueur sont ABSOLUS - pas de bypass possible
+        // Les overrides joueur sont ABSOLUS
         if (uuid != null) {
             Object playerOverride = region.getPlayerFlag(uuid, primaryFlag);
             if (playerOverride == null && fallbackFlag != null) playerOverride = region.getPlayerFlag(uuid, fallbackFlag);
@@ -68,7 +103,7 @@ public final class RegionPermissionChecker {
         }
 
         // === 2. Vérifier override GROUPE (par priorité de rank décroissante) ===
-        // Les overrides groupe sont aussi ABSOLUS - pas de bypass possible
+        // Les overrides groupe sont aussi ABSOLUS
         if (playerPermissions != null && uuid != null) {
             // Trier les ranks par priorité décroissante
             List<Rank> sortedRanks = playerPermissions.getRanks().stream()
@@ -81,21 +116,19 @@ public final class RegionPermissionChecker {
                     groupOverride = region.getGroupFlag(rank.getName(), fallbackFlag);
                 }
                 if (groupOverride != null) {
-                    // Override groupe trouvé - évaluation STRICTE (pas de bypass OP/Creative)
                     return evaluateFlagValueStrict(groupOverride, region, uuid);
                 }
             }
         }
 
         // === 3. Utiliser le flag de RÉGION (fallback) ===
-        // Seuls les flags de région peuvent être bypassés par OP/Creative
         Object flagValue = region.getFlags().get(primaryFlag);
         if (flagValue == null && fallbackFlag != null) flagValue = region.getFlags().get(fallbackFlag);
-        return evaluateFlagValue(flagValue, region, player, uuid);
+        return evaluateFlagValue(flagValue, region, uuid);
     }
 
     /**
-     * Évalue la valeur d'un flag de manière STRICTE (pas de bypass OP/Creative).
+     * Évalue la valeur d'un flag de manière STRICTE (pas de bypass).
      * Utilisé pour les overrides joueur et groupe qui sont absolus.
      */
     private static PermissionResult evaluateFlagValueStrict(
@@ -121,7 +154,6 @@ public final class RegionPermissionChecker {
             return PermissionResult.BYPASSED;
         }
 
-        // Pas de bypass OP/Creative pour les overrides joueur/groupe
         return PermissionResult.DENIED;
     }
 
@@ -138,12 +170,12 @@ public final class RegionPermissionChecker {
     }
 
     /**
-     * Évalue la valeur d'un flag et applique les bypass.
+     * Évalue la valeur d'un flag avec vérification membres.
+     * Plus de bypass OP ni Creative - seul le toggle bypass passe avant.
      */
     private static PermissionResult evaluateFlagValue(
             @Nullable Object flagValue,
             @NotNull RegionImpl region,
-            @Nullable Player player,
             @Nullable UUID uuid) {
 
         // Si flag non défini ou ALLOW (true), autoriser
@@ -159,45 +191,9 @@ public final class RegionPermissionChecker {
             return PermissionResult.ALLOWED;
         }
 
-        // Vérifier les bypass
-        if (player != null) {
-            // OP bypass - toujours autoriser les joueurs avec permission "*"
-            try {
-                if (player.hasPermission("*")) {
-                    return PermissionResult.BYPASSED;
-                }
-            } catch (Exception ignored) {
-                // Permission check failed
-            }
-
-            // Creative bypass - autoriser si le flag est activé
-            Boolean creativeBypass = region.getFlag(RegionFlag.CREATIVE_BYPASS);
-            if (Boolean.TRUE.equals(creativeBypass)) {
-                try {
-                    if (player.getGameMode() == GameMode.Creative) {
-                        return PermissionResult.BYPASSED;
-                    }
-                } catch (Exception ignored) {
-                    // GameMode check failed
-                }
-            }
-
-            // Members bypass - autoriser si le flag est "members" et le joueur est membre
-            if (membersOnly) {
-                try {
-                    UUID playerUuid = uuid != null ? uuid : player.getUuid();
-                    if (region.isMember(playerUuid)) {
-                        return PermissionResult.BYPASSED;
-                    }
-                } catch (Exception ignored) {
-                    // UUID check failed
-                }
-            }
-        } else if (uuid != null) {
-            // Seulement UUID disponible - vérifier membres
-            if (membersOnly && region.isMember(uuid)) {
-                return PermissionResult.BYPASSED;
-            }
+        // Members bypass - autoriser si le flag est "members" et le joueur est membre
+        if (membersOnly && uuid != null && region.isMember(uuid)) {
+            return PermissionResult.BYPASSED;
         }
 
         return PermissionResult.DENIED;
@@ -205,12 +201,6 @@ public final class RegionPermissionChecker {
 
     /**
      * Version simplifiée pour les cas courants.
-     *
-     * @param region La région
-     * @param player Le joueur
-     * @param primaryFlag Le flag principal
-     * @param fallbackFlag Le flag de fallback (peut être null)
-     * @return true si l'action est autorisée, false sinon
      */
     public static boolean isAllowed(
             @NotNull RegionImpl region,
@@ -232,13 +222,6 @@ public final class RegionPermissionChecker {
 
     /**
      * Version avec PlayerPermissions pour la résolution par groupe.
-     *
-     * @param region La région
-     * @param player Le joueur
-     * @param primaryFlag Le flag principal
-     * @param fallbackFlag Le flag de fallback (peut être null)
-     * @param playerPermissions Permissions du joueur (peut être null)
-     * @return true si l'action est autorisée, false sinon
      */
     public static boolean isAllowed(
             @NotNull RegionImpl region,
@@ -261,12 +244,6 @@ public final class RegionPermissionChecker {
 
     /**
      * Version avec UUID uniquement (pour les cas où on n'a pas accès au Player).
-     *
-     * @param region La région
-     * @param playerUuid UUID du joueur
-     * @param primaryFlag Le flag principal
-     * @param fallbackFlag Le flag de fallback (peut être null)
-     * @return true si l'action est autorisée, false sinon
      */
     public static boolean isAllowedByUuid(
             @NotNull RegionImpl region,
@@ -280,13 +257,6 @@ public final class RegionPermissionChecker {
 
     /**
      * Version avec UUID et PlayerPermissions.
-     *
-     * @param region La région
-     * @param playerUuid UUID du joueur
-     * @param primaryFlag Le flag principal
-     * @param fallbackFlag Le flag de fallback (peut être null)
-     * @param playerPermissions Permissions du joueur (peut être null)
-     * @return true si l'action est autorisée, false sinon
      */
     public static boolean isAllowedByUuid(
             @NotNull RegionImpl region,

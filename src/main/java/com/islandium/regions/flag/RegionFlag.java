@@ -119,13 +119,6 @@ public enum RegionFlag {
      */
     PASSTHROUGH("passthrough", Boolean.FALSE, FlagType.BOOLEAN, "Passe aux regions inferieures", ImplementationStatus.NOT_IMPLEMENTED),
 
-    // === Flag de bypass ===
-
-    /**
-     * Bypass les restrictions pour les joueurs en mode créatif.
-     */
-    CREATIVE_BYPASS("creative-bypass", Boolean.FALSE, FlagType.BOOLEAN, "Bypass en mode creatif", ImplementationStatus.IMPLEMENTED),
-
     /**
      * Liste des ranks autorisés (séparés par des virgules).
      * Ex: "admin,moderator,vip"
@@ -214,7 +207,7 @@ public enum RegionFlag {
      * Valeurs possibles pour les flags tri-state.
      * ALLOW = tout le monde peut
      * MEMBERS = seulement les membres/owners
-     * DENY = personne (sauf OP/creative bypass)
+     * DENY = personne (sauf bypass toggle actif)
      */
     public enum FlagValue {
         ALLOW,   // ON - tout le monde

@@ -4,7 +4,9 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.core.database.SQLExecutor;
+import com.islandium.core.ui.IslandiumUIRegistry;
 import com.islandium.regions.command.RegionCommandManager;
+import com.islandium.regions.ui.RegionMainPage;
 import com.islandium.regions.database.RegionFlagRepository;
 import com.islandium.regions.database.RegionGroupFlagRepository;
 import com.islandium.regions.database.RegionMemberRepository;
@@ -186,6 +188,10 @@ public class RegionsPlugin extends JavaPlugin {
             this.movementTracker = new PlayerMovementTracker(this);
             this.movementTracker.start();
 
+            // 11. Enregistrer dans le menu principal
+            log(Level.INFO, "Registering in main menu...");
+            registerMenuEntry();
+
             // Marquer le plugin comme prêt
             this.ready = true;
 
@@ -208,6 +214,17 @@ public class RegionsPlugin extends JavaPlugin {
             .thenCompose(v -> playerFlagRepository.createTables())
             .thenCompose(v -> bypassRepository.createTables())
             .thenRun(() -> log(Level.INFO, "Database migrations completed!"));
+    }
+
+    private void registerMenuEntry() {
+        IslandiumUIRegistry.getInstance().register(new IslandiumUIRegistry.Entry(
+                "regions",
+                "REGIONS",
+                "Protection et gestion des zones",
+                "#4fc3f7",
+                playerRef -> new RegionMainPage(playerRef, this, currentWorldName),
+                false
+        ));
     }
 
     /**

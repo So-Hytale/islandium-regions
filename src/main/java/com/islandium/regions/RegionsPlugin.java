@@ -217,14 +217,15 @@ public class RegionsPlugin extends JavaPlugin {
     }
 
     private void registerMenuEntry() {
-        IslandiumUIRegistry.getInstance().register(new IslandiumUIRegistry.Entry(
-                "regions",
-                "REGIONS",
-                "Protection et gestion des zones",
-                "#4fc3f7",
-                playerRef -> new RegionMainPage(playerRef, this, currentWorldName),
-                false
-        ));
+        // Bouton menu desactive pour le moment
+        // IslandiumUIRegistry.getInstance().register(new IslandiumUIRegistry.Entry(
+        //         "regions",
+        //         "REGIONS",
+        //         "Protection et gestion des zones",
+        //         "#4fc3f7",
+        //         playerRef -> new RegionMainPage(playerRef, this, currentWorldName),
+        //         false
+        // ));
     }
 
     /**

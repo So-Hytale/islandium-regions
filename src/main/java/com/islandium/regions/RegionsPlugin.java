@@ -14,9 +14,9 @@ import com.islandium.regions.database.RegionPlayerFlagRepository;
 import com.islandium.regions.database.BypassRepository;
 import com.islandium.regions.database.RegionRepository;
 import com.islandium.regions.event.BreakBlockEventSystem;
-import com.islandium.regions.event.DamageEventListener;
-import com.islandium.regions.event.ItemDropEventListener;
-import com.islandium.regions.event.ItemPickupEventListener;
+import com.islandium.regions.event.DamageEventSystem;
+import com.islandium.regions.event.DropItemEventSystem;
+import com.islandium.regions.event.ItemPickupEventSystem;
 import com.islandium.regions.event.PlaceBlockEventSystem;
 import com.islandium.regions.event.PlayerMovementTracker;
 import com.islandium.regions.service.RegionService;
@@ -86,13 +86,10 @@ public class RegionsPlugin extends JavaPlugin {
         // Enregistrer les systèmes ECS pour les events
         getEntityStoreRegistry().registerSystem(new BreakBlockEventSystem());
         getEntityStoreRegistry().registerSystem(new PlaceBlockEventSystem());
-        log(Level.INFO, "ECS Event systems registered (2 active listeners)!");
-
-        // Créer les stubs pour les listeners en attente de l'API
-        // Ces listeners seront activés quand l'API Hytale fournira les events correspondants
-        new DamageEventListener(this);
-        new ItemDropEventListener(this);
-        new ItemPickupEventListener(this);
+        getEntityStoreRegistry().registerSystem(new DamageEventSystem());
+        getEntityStoreRegistry().registerSystem(new DropItemEventSystem());
+        getEntityStoreRegistry().registerSystem(new ItemPickupEventSystem());
+        log(Level.INFO, "ECS Event systems registered (5 active listeners: BreakBlock, PlaceBlock, Damage, DropItem, ItemPickup)!");
     }
 
     /**

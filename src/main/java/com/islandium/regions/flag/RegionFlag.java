@@ -52,12 +52,12 @@ public enum RegionFlag {
     /**
      * Autorise le PvP dans la région.
      */
-    PVP("pvp", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le PvP", ImplementationStatus.PARTIAL),
+    PVP("pvp", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le PvP", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Rend les joueurs invincibles dans la région.
      */
-    INVINCIBLE("invincible", Boolean.FALSE, FlagType.BOOLEAN, "Joueurs invincibles", ImplementationStatus.PARTIAL),
+    INVINCIBLE("invincible", Boolean.FALSE, FlagType.BOOLEAN, "Joueurs invincibles", ImplementationStatus.IMPLEMENTED),
 
     // === Flags d'entités ===
 
@@ -69,7 +69,7 @@ public enum RegionFlag {
     /**
      * Autorise les dégâts aux mobs.
      */
-    MOB_DAMAGE("mob-damage", Boolean.TRUE, FlagType.BOOLEAN, "Autorise les degats aux mobs", ImplementationStatus.NOT_IMPLEMENTED),
+    MOB_DAMAGE("mob-damage", Boolean.TRUE, FlagType.BOOLEAN, "Autorise les degats aux mobs", ImplementationStatus.IMPLEMENTED),
 
     // === Flags de mouvement ===
 
@@ -93,12 +93,12 @@ public enum RegionFlag {
     /**
      * Autorise le drop d'items.
      */
-    ITEM_DROP("item-drop", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le drop d'items", ImplementationStatus.PARTIAL),
+    ITEM_DROP("item-drop", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le drop d'items", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise le ramassage d'items.
      */
-    ITEM_PICKUP("item-pickup", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le ramassage d'items", ImplementationStatus.PARTIAL),
+    ITEM_PICKUP("item-pickup", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le ramassage d'items", ImplementationStatus.IMPLEMENTED),
 
     // === Flags de messages ===
 

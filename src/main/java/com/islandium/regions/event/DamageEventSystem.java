@@ -14,7 +14,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.core.api.permission.PlayerPermissions;
-import com.islandium.core.api.util.ColorUtil;
+import com.islandium.core.api.util.NotificationType;
+import com.islandium.core.api.util.NotificationUtil;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.flag.RegionFlag;
 import com.islandium.regions.model.RegionImpl;
@@ -172,8 +173,7 @@ public class DamageEventSystem extends EntityEventSystem<EntityStore, Damage> {
                 if (!pvpAllowed) {
                     damage.setCancelled(true);
                     String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-                    attackerPlayer.sendMessage(ColorUtil.parse(
-                        "&c&lProtection! &7Le &cPvP &7est desactive dans &e" + regionDisplayName + "&7."));
+                    NotificationUtil.send(attackerPlayer, NotificationType.WARNING, "Le PvP est desactive dans " + regionDisplayName);
                     plugin.log(Level.INFO, "[Damage] CANCELLED (PVP) - Attacker: " + attackerPlayer.getUuid()
                         + " -> Target: " + targetPlayer.getUuid() + " in region: " + region.getName());
                     return;

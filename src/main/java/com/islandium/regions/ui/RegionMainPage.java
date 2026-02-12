@@ -20,7 +20,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.islandium.core.api.permission.PermissionService;
 import com.islandium.core.api.permission.Rank;
-import com.islandium.core.api.util.ColorUtil;
+import com.islandium.core.api.util.NotificationType;
+import com.islandium.core.api.util.NotificationUtil;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.flag.RegionFlag;
@@ -329,13 +330,13 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             regionService.getOrCreateGlobalRegion(worldName)
                 .thenAccept(region -> {
                     if (player != null) {
-                        player.sendMessage(ColorUtil.parse("&aRegion globale creee pour '" + worldName + "'!"));
+                        NotificationUtil.send(player, NotificationType.SUCCESS, "Region globale creee pour '" + worldName + "'!");
                     }
                     refreshHomePage();
                 })
                 .exceptionally(e -> {
                     if (player != null) {
-                        player.sendMessage(ColorUtil.parse("&cErreur creation region globale: " + e.getMessage()));
+                        NotificationUtil.send(player, NotificationType.ERROR, "Erreur creation region globale: " + e.getMessage());
                     }
                     return null;
                 });
@@ -1107,9 +1108,9 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             case "toggleBypass" -> {
                 boolean nowBypassing = RegionPermissionChecker.toggleBypass(player.getUuid());
                 if (nowBypassing) {
-                    player.sendMessage(ColorUtil.parse("&a&lBYPASS ACTIVE &7- Vous ignorez toutes les protections de regions."));
+                    NotificationUtil.send(player, NotificationType.SUCCESS, "BYPASS ACTIVE", "Vous ignorez toutes les protections de regions.");
                 } else {
-                    player.sendMessage(ColorUtil.parse("&c&lBYPASS DESACTIVE &7- Les protections de regions sont actives."));
+                    NotificationUtil.send(player, NotificationType.ERROR, "BYPASS DESACTIVE", "Les protections de regions sont actives.");
                 }
                 // Mettre à jour le bouton sans changer de page
                 updateBypassButton(cmd);
@@ -1248,7 +1249,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         // Pas de téléportation pour la région globale
         if (RegionService.isGlobalRegion(region)) {
-            player.sendMessage(ColorUtil.parse("&cImpossible de se teleporter a la region globale."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Impossible de se teleporter a la region globale.");
             return;
         }
 
@@ -1277,13 +1278,13 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
                     Vector3f currentRotation = transform.getRotation().clone();
                     Teleport teleport = new Teleport(targetPos, currentRotation);
                     store.addComponent(ref, Teleport.getComponentType(), teleport);
-                    player.sendMessage(ColorUtil.parse("&aTeleporte au centre de '" + region.getName() + "'"));
+                    NotificationUtil.send(player, NotificationType.SUCCESS, "Teleporte au centre de '" + region.getName() + "'");
                     return;
                 }
             }
-            player.sendMessage(ColorUtil.parse("&cImpossible de teleporter."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Impossible de teleporter.");
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur lors de la teleportation"));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur lors de la teleportation");
         }
     }
 
@@ -1297,7 +1298,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         // Vérifier si c'est une région globale (ne peut pas être visualisée)
         if (RegionService.isGlobalRegion(region)) {
-            player.sendMessage(ColorUtil.parse("&cLa region globale ne peut pas etre visualisee (trop grande)."));
+            NotificationUtil.send(player, NotificationType.ERROR, "La region globale ne peut pas etre visualisee (trop grande).");
             return;
         }
 
@@ -1306,28 +1307,27 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         boolean nowActive = vizService.toggleVisualization(player, region);
 
         if (nowActive) {
-            player.sendMessage(ColorUtil.parse("&aVisualisation de '" + region.getName() + "' activee (5 min)."));
-            player.sendMessage(ColorUtil.parse("&7Forme: " + region.getShape().getShapeType()));
+            NotificationUtil.send(player, NotificationType.SUCCESS, "Visualisation de '" + region.getName() + "' activee (5 min).", "Forme: " + region.getShape().getShapeType());
         } else {
-            player.sendMessage(ColorUtil.parse("&7Visualisation desactivee."));
+            NotificationUtil.send(player, NotificationType.INFO, "Visualisation desactivee.");
         }
     }
 
     private void handleDeleteRegion(Player player) {
         if (selectedRegionName == null) return;
         regionService.deleteRegion(worldName, selectedRegionName).join();
-        player.sendMessage(ColorUtil.parse("&aRegion '" + selectedRegionName + "' supprimee."));
+        NotificationUtil.send(player, NotificationType.SUCCESS, "Region '" + selectedRegionName + "' supprimee.");
     }
 
     private void handleCreateRegion(PageData data, Player player) {
         String name = data.regionName;
         if (name == null || name.isBlank()) {
-            player.sendMessage(ColorUtil.parse("&cVeuillez entrer un nom pour la region."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Veuillez entrer un nom pour la region.");
             return;
         }
 
         if (regionService.getRegion(worldName, name).join().isPresent()) {
-            player.sendMessage(ColorUtil.parse("&cUne region avec ce nom existe deja."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Une region avec ce nom existe deja.");
             return;
         }
 
@@ -1347,17 +1347,17 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
                 int height = data.cylinderHeight != null && data.cylinderHeight > 0 ? data.cylinderHeight : 20;
 
                 shape = new CylinderShape(centerX, centerY, centerZ, radius, height);
-                player.sendMessage(ColorUtil.parse("&7Cylindre: centre=(" + centerX + "," + centerY + "," + centerZ + ") r=" + radius + " h=" + height));
+                NotificationUtil.send(player, NotificationType.INFO, "Cylindre: centre=(" + centerX + "," + centerY + "," + centerZ + ") r=" + radius + " h=" + height);
             } else {
                 // Création d'un cuboid depuis la sélection
                 if (!SelectionHelper.hasValidSelection(player)) {
-                    player.sendMessage(ColorUtil.parse("&cVeuillez d'abord definir une selection avec /pos1 et /pos2."));
+                    NotificationUtil.send(player, NotificationType.WARNING, "Veuillez d'abord definir une selection avec /pos1 et /pos2.");
                     return;
                 }
 
                 Optional<BoundingBox> boundsOpt = SelectionHelper.getSelectionAsBoundingBox(player);
                 if (boundsOpt.isEmpty()) {
-                    player.sendMessage(ColorUtil.parse("&cSelection invalide."));
+                    NotificationUtil.send(player, NotificationType.ERROR, "Selection invalide.");
                     return;
                 }
 
@@ -1368,37 +1368,35 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             int priority = data.regionPriority != null ? data.regionPriority : 0;
 
             regionService.createRegion(name, worldName, shape, player.getUuid(), priority).join();
-            player.sendMessage(ColorUtil.parse("&aRegion '" + name + "' creee avec succes!"));
-            player.sendMessage(ColorUtil.parse("&7Type: " + shape.getShapeType() + " - Volume: " + shape.getVolume() + " blocs - Priorite: " + priority));
+            NotificationUtil.send(player, NotificationType.SUCCESS, "Region '" + name + "' creee avec succes!", "Type: " + shape.getShapeType() + " - Volume: " + shape.getVolume() + " blocs - Priorite: " + priority);
 
             // Réinitialiser le type de forme pour la prochaine création
             createShapeType = "cuboid";
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur: " + e.getMessage()));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur: " + e.getMessage());
         }
     }
 
     private void handleCreateGlobalAsync(Player player) {
         Optional<RegionImpl> existingOpt = regionService.getGlobalRegion(worldName);
         if (existingOpt.isPresent()) {
-            player.sendMessage(ColorUtil.parse("&cUne region globale existe deja dans ce monde."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Une region globale existe deja dans ce monde.");
             // Rafraîchir la page home
             refreshHomePage();
             return;
         }
 
-        player.sendMessage(ColorUtil.parse("&7Creation de la region globale..."));
+        NotificationUtil.send(player, NotificationType.INFO, "Creation de la region globale...");
 
         // Créer en async sans bloquer
         regionService.getOrCreateGlobalRegion(worldName)
             .thenAccept(region -> {
-                player.sendMessage(ColorUtil.parse("&aRegion globale creee pour '" + worldName + "'!"));
-                player.sendMessage(ColorUtil.parse("&7Utilisez l'editeur pour configurer les flags par defaut."));
+                NotificationUtil.send(player, NotificationType.SUCCESS, "Region globale creee pour '" + worldName + "'!", "Utilisez l'editeur pour configurer les flags par defaut.");
                 // Rafraîchir la page home
                 refreshHomePage();
             })
             .exceptionally(e -> {
-                player.sendMessage(ColorUtil.parse("&cErreur: " + e.getMessage()));
+                NotificationUtil.send(player, NotificationType.ERROR, "Erreur: " + e.getMessage());
                 return null;
             });
     }
@@ -1420,7 +1418,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         RegionFlag flag = RegionFlag.fromName(flagName);
         if (flag == null) {
-            player.sendMessage(ColorUtil.parse("&cFlag invalide: " + flagName));
+            NotificationUtil.send(player, NotificationType.ERROR, "Flag invalide: " + flagName);
             return;
         }
 
@@ -1434,15 +1432,15 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         if (valueStr.equals("clear")) {
             regionService.clearFlag(region, flag).join();
-            player.sendMessage(ColorUtil.parse("&7[&b" + worldName + "&7] Region &e" + regionDisplayName + "&7: Flag &f" + flag.getName() + "&7 supprime"));
+            NotificationUtil.send(player, NotificationType.INFO, "Region " + regionDisplayName + ": Flag " + flag.getName() + " supprime");
         } else {
             Object newValue = flag.parseValue(valueStr);
             if (newValue != null) {
                 regionService.setFlag(region, flag, newValue).join();
                 String displayValue = formatFlagValue(newValue);
-                player.sendMessage(ColorUtil.parse("&a[&b" + worldName + "&a] Region &e" + regionDisplayName + "&a: &f" + flag.getName() + " &a= &f" + displayValue));
+                NotificationUtil.send(player, NotificationType.SUCCESS, "Region " + regionDisplayName + ": " + flag.getName() + " = " + displayValue);
             } else {
-                player.sendMessage(ColorUtil.parse("&cValeur invalide pour le flag " + flag.getName()));
+                NotificationUtil.send(player, NotificationType.ERROR, "Valeur invalide pour le flag " + flag.getName());
                 return;
             }
         }
@@ -1463,7 +1461,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         RegionFlag flag = RegionFlag.fromName(flagName);
         if (flag == null) {
-            player.sendMessage(ColorUtil.parse("&cFlag invalide: " + flagName));
+            NotificationUtil.send(player, NotificationType.ERROR, "Flag invalide: " + flagName);
             return;
         }
 
@@ -1477,15 +1475,15 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         if (valueStr.equals("clear")) {
             regionService.clearGroupFlag(region, rankName, flag).join();
-            player.sendMessage(ColorUtil.parse("&7[&b" + worldName + "&7] Region &e" + regionDisplayName + "&7: Groupe &d" + rankName + "&7 flag &f" + flag.getName() + "&7 supprime"));
+            NotificationUtil.send(player, NotificationType.INFO, "Region " + regionDisplayName + ": Groupe " + rankName + " flag " + flag.getName() + " supprime");
         } else {
             Object newValue = flag.parseValue(valueStr);
             if (newValue != null) {
                 regionService.setGroupFlag(region, rankName, flag, newValue).join();
                 String displayValue = formatFlagValue(newValue);
-                player.sendMessage(ColorUtil.parse("&a[&b" + worldName + "&a] Region &e" + regionDisplayName + "&a: Groupe &d" + rankName + "&a &f" + flag.getName() + " &a= &f" + displayValue));
+                NotificationUtil.send(player, NotificationType.SUCCESS, "Region " + regionDisplayName + ": Groupe " + rankName + " " + flag.getName() + " = " + displayValue);
             } else {
-                player.sendMessage(ColorUtil.parse("&cValeur invalide pour le flag " + flag.getName()));
+                NotificationUtil.send(player, NotificationType.ERROR, "Valeur invalide pour le flag " + flag.getName());
                 return;
             }
         }
@@ -1504,7 +1502,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         try {
             targetUuid = UUID.fromString(parts[0]);
         } catch (IllegalArgumentException e) {
-            player.sendMessage(ColorUtil.parse("&cUUID joueur invalide"));
+            NotificationUtil.send(player, NotificationType.ERROR, "UUID joueur invalide");
             return;
         }
 
@@ -1513,7 +1511,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         RegionFlag flag = RegionFlag.fromName(flagName);
         if (flag == null) {
-            player.sendMessage(ColorUtil.parse("&cFlag invalide: " + flagName));
+            NotificationUtil.send(player, NotificationType.ERROR, "Flag invalide: " + flagName);
             return;
         }
 
@@ -1528,15 +1526,15 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         if (valueStr.equals("clear")) {
             regionService.clearPlayerFlag(region, targetUuid, flag).join();
-            player.sendMessage(ColorUtil.parse("&7[&b" + worldName + "&7] Region &e" + regionDisplayName + "&7: Joueur &6" + targetPlayerName + "&7 flag &f" + flag.getName() + "&7 supprime"));
+            NotificationUtil.send(player, NotificationType.INFO, "Region " + regionDisplayName + ": Joueur " + targetPlayerName + " flag " + flag.getName() + " supprime");
         } else {
             Object newValue = flag.parseValue(valueStr);
             if (newValue != null) {
                 regionService.setPlayerFlag(region, targetUuid, flag, newValue).join();
                 String displayValue = formatFlagValue(newValue);
-                player.sendMessage(ColorUtil.parse("&a[&b" + worldName + "&a] Region &e" + regionDisplayName + "&a: Joueur &6" + targetPlayerName + "&a &f" + flag.getName() + " &a= &f" + displayValue));
+                NotificationUtil.send(player, NotificationType.SUCCESS, "Region " + regionDisplayName + ": Joueur " + targetPlayerName + " " + flag.getName() + " = " + displayValue);
             } else {
-                player.sendMessage(ColorUtil.parse("&cValeur invalide pour le flag " + flag.getName()));
+                NotificationUtil.send(player, NotificationType.ERROR, "Valeur invalide pour le flag " + flag.getName());
                 return;
             }
         }
@@ -1548,7 +1546,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
     private void handleSearchPlayer(String playerName, Player player) {
         if (playerName == null || playerName.isBlank()) {
-            player.sendMessage(ColorUtil.parse("&cVeuillez entrer un pseudo."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Veuillez entrer un pseudo.");
             return;
         }
 
@@ -1557,7 +1555,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             var uuidOpt = playerManager.getPlayerUUID(playerName).join();
 
             if (uuidOpt.isEmpty()) {
-                player.sendMessage(ColorUtil.parse("&cJoueur '" + playerName + "' non trouve."));
+                NotificationUtil.send(player, NotificationType.ERROR, "Joueur '" + playerName + "' non trouve.");
                 selectedPlayerUuid = null;
                 selectedPlayerName = null;
                 return;
@@ -1566,9 +1564,9 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             selectedPlayerUuid = uuidOpt.get();
             selectedPlayerName = playerName;
             playerNameCache.put(selectedPlayerUuid, playerName);
-            player.sendMessage(ColorUtil.parse("&aJoueur '" + playerName + "' selectionne."));
+            NotificationUtil.send(player, NotificationType.SUCCESS, "Joueur '" + playerName + "' selectionne.");
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur: " + e.getMessage()));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur: " + e.getMessage());
             selectedPlayerUuid = null;
             selectedPlayerName = null;
         }
@@ -1586,7 +1584,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         String memberName = data.memberName;
         if (memberName == null || memberName.isBlank()) {
-            player.sendMessage(ColorUtil.parse("&cVeuillez entrer un pseudo."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Veuillez entrer un pseudo.");
             return;
         }
 
@@ -1600,7 +1598,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             var uuidOpt = playerManager.getPlayerUUID(memberName).join();
 
             if (uuidOpt.isEmpty()) {
-                player.sendMessage(ColorUtil.parse("&cJoueur '" + memberName + "' non trouve."));
+                NotificationUtil.send(player, NotificationType.ERROR, "Joueur '" + memberName + "' non trouve.");
                 return;
             }
 
@@ -1609,13 +1607,13 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
             if (asOwner) {
                 regionService.addOwner(region, targetUuid, player.getUuid()).join();
-                player.sendMessage(ColorUtil.parse("&a" + memberName + " ajoute comme proprietaire."));
+                NotificationUtil.send(player, NotificationType.SUCCESS, memberName + " ajoute comme proprietaire.");
             } else {
                 regionService.addMember(region, targetUuid, player.getUuid()).join();
-                player.sendMessage(ColorUtil.parse("&a" + memberName + " ajoute comme membre."));
+                NotificationUtil.send(player, NotificationType.SUCCESS, memberName + " ajoute comme membre.");
             }
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur: " + e.getMessage()));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur: " + e.getMessage());
         }
     }
 
@@ -1631,30 +1629,30 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             UUID targetUuid = UUID.fromString(uuidStr);
             if (isOwner) {
                 regionService.removeOwner(region, targetUuid).join();
-                player.sendMessage(ColorUtil.parse("&aProprietaire retire."));
+                NotificationUtil.send(player, NotificationType.SUCCESS, "Proprietaire retire.");
             } else {
                 regionService.removeMember(region, targetUuid).join();
-                player.sendMessage(ColorUtil.parse("&aMembre retire."));
+                NotificationUtil.send(player, NotificationType.SUCCESS, "Membre retire.");
             }
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur: " + e.getMessage()));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur: " + e.getMessage());
         }
     }
 
     private void handleChangePriority(PageData data, Player player) {
         if (selectedRegionName == null) {
-            player.sendMessage(ColorUtil.parse("&cAucune region selectionnee."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Aucune region selectionnee.");
             return;
         }
 
         if (data.newPriority == null) {
-            player.sendMessage(ColorUtil.parse("&cVeuillez entrer une priorite valide."));
+            NotificationUtil.send(player, NotificationType.WARNING, "Veuillez entrer une priorite valide.");
             return;
         }
 
         Optional<RegionImpl> regionOpt = regionService.getRegion(worldName, selectedRegionName).join();
         if (regionOpt.isEmpty()) {
-            player.sendMessage(ColorUtil.parse("&cRegion introuvable."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Region introuvable.");
             return;
         }
 
@@ -1664,21 +1662,21 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         try {
             regionService.setPriority(region, newPriority).join();
-            player.sendMessage(ColorUtil.parse("&aPriorite de '" + region.getName() + "' changee: " + oldPriority + " -> " + newPriority));
+            NotificationUtil.send(player, NotificationType.SUCCESS, "Priorite de '" + region.getName() + "' changee: " + oldPriority + " -> " + newPriority);
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur lors du changement de priorite: " + e.getMessage()));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur lors du changement de priorite: " + e.getMessage());
         }
     }
 
     private void handleUpdateFromSelection(Player player) {
         if (selectedRegionName == null) {
-            player.sendMessage(ColorUtil.parse("&cAucune region selectionnee."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Aucune region selectionnee.");
             return;
         }
 
         Optional<RegionImpl> regionOpt = regionService.getRegion(worldName, selectedRegionName).join();
         if (regionOpt.isEmpty()) {
-            player.sendMessage(ColorUtil.parse("&cRegion introuvable."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Region introuvable.");
             return;
         }
 
@@ -1686,14 +1684,14 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         // Vérifier que c'est bien un cuboid
         if (!(region.getShape() instanceof CuboidShape)) {
-            player.sendMessage(ColorUtil.parse("&cCette region n'est pas un cuboid."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Cette region n'est pas un cuboid.");
             return;
         }
 
         // Obtenir la sélection du joueur
         Optional<BoundingBox> selectionOpt = SelectionHelper.getSelectionAsBoundingBox(player);
         if (selectionOpt.isEmpty()) {
-            player.sendMessage(ColorUtil.parse("&cVous n'avez pas de selection active. Utilisez /pos1 et /pos2."));
+            NotificationUtil.send(player, NotificationType.WARNING, "Vous n'avez pas de selection active. Utilisez /pos1 et /pos2.");
             return;
         }
 
@@ -1704,9 +1702,9 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         try {
             regionService.redefineRegion(region, newShape).join();
-            player.sendMessage(ColorUtil.parse("&aForme de la region '" + region.getName() + "' mise a jour depuis votre selection."));
+            NotificationUtil.send(player, NotificationType.SUCCESS, "Forme de la region '" + region.getName() + "' mise a jour depuis votre selection.");
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur lors de la mise a jour de la forme: " + e.getMessage()));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur lors de la mise a jour de la forme: " + e.getMessage());
         }
     }
 
@@ -1715,12 +1713,12 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         plugin.log(java.util.logging.Level.INFO, "[DEBUG] newRadius=" + data.newRadius + ", newHeight=" + data.newHeight);
 
         if (selectedRegionName == null) {
-            player.sendMessage(ColorUtil.parse("&cAucune region selectionnee."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Aucune region selectionnee.");
             return;
         }
 
         if (data.newRadius == null || data.newHeight == null) {
-            player.sendMessage(ColorUtil.parse("&cVeuillez entrer un rayon et une hauteur valides."));
+            NotificationUtil.send(player, NotificationType.WARNING, "Veuillez entrer un rayon et une hauteur valides.");
             return;
         }
 
@@ -1732,7 +1730,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         Optional<RegionImpl> regionOpt = regionService.getRegion(worldName, selectedRegionName).join();
         if (regionOpt.isEmpty()) {
-            player.sendMessage(ColorUtil.parse("&cRegion introuvable."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Region introuvable.");
             return;
         }
 
@@ -1740,12 +1738,12 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         // Vérifier que c'est bien un cylindre
         if (!(region.getShape() instanceof CylinderShape oldCyl)) {
-            player.sendMessage(ColorUtil.parse("&cCette region n'est pas un cylindre."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Cette region n'est pas un cylindre.");
             return;
         }
 
         if (newRadius <= 0 || newHeight <= 0) {
-            player.sendMessage(ColorUtil.parse("&cLe rayon et la hauteur doivent etre positifs."));
+            NotificationUtil.send(player, NotificationType.ERROR, "Le rayon et la hauteur doivent etre positifs.");
             return;
         }
 
@@ -1761,9 +1759,9 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         try {
             regionService.redefineRegion(region, newShape).join();
-            player.sendMessage(ColorUtil.parse("&aForme du cylindre '" + region.getName() + "' mise a jour: rayon=" + newRadius + ", hauteur=" + newHeight));
+            NotificationUtil.send(player, NotificationType.SUCCESS, "Forme du cylindre '" + region.getName() + "' mise a jour", "Rayon=" + newRadius + ", Hauteur=" + newHeight);
         } catch (Exception e) {
-            player.sendMessage(ColorUtil.parse("&cErreur lors de la mise a jour du cylindre: " + e.getMessage()));
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur lors de la mise a jour du cylindre: " + e.getMessage());
         }
     }
 

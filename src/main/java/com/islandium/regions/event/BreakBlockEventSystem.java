@@ -16,7 +16,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.core.api.permission.PlayerPermissions;
-import com.islandium.core.api.util.ColorUtil;
+import com.islandium.core.api.util.NotificationType;
+import com.islandium.core.api.util.NotificationUtil;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.flag.RegionFlag;
 import com.islandium.regions.model.RegionImpl;
@@ -94,7 +95,7 @@ public class BreakBlockEventSystem extends EntityEventSystem<EntityStore, BreakB
             // Envoyer un message au joueur
             if (player != null) {
                 String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-                player.sendMessage(ColorUtil.parse("&c&lProtection! &7Vous ne pouvez pas &ccasser de blocs &7dans &e" + regionDisplayName + "&7."));
+                NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas casser de blocs dans " + regionDisplayName);
             }
         }
     }

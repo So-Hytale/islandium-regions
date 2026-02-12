@@ -13,7 +13,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.core.api.permission.PlayerPermissions;
-import com.islandium.core.api.util.ColorUtil;
+import com.islandium.core.api.util.NotificationType;
+import com.islandium.core.api.util.NotificationUtil;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.flag.RegionFlag;
 import com.islandium.regions.model.RegionImpl;
@@ -139,8 +140,7 @@ public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItem
             event.setCancelled(true);
 
             String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-            player.sendMessage(ColorUtil.parse(
-                "&c&lProtection! &7Vous ne pouvez pas &cdrop d'items &7dans &e" + regionDisplayName + "&7."));
+            NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas drop d'items dans " + regionDisplayName);
 
             plugin.log(Level.INFO, "[ItemDrop] CANCELLED - Player: " + player.getUuid()
                 + " in region: " + region.getName());

@@ -6,6 +6,8 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.islandium.core.api.util.ColorUtil;
+import com.islandium.core.api.util.NotificationType;
+import com.islandium.core.api.util.NotificationUtil;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.model.RegionImpl;
 import com.islandium.regions.service.RegionService;
@@ -37,17 +39,25 @@ public abstract class RegionCommand extends AbstractCommand {
     }
 
     /**
-     * Envoie un message d'erreur.
+     * Envoie un message d'erreur via notification visuelle.
      */
     protected void sendError(@NotNull CommandContext ctx, @NotNull String message) {
-        ctx.sendMessage(ColorUtil.parse("&8[&6Regions&8] &c" + message));
+        sendNotification(ctx, NotificationType.ERROR, message);
     }
 
     /**
-     * Envoie un message de succès.
+     * Envoie un message de succès via notification visuelle.
      */
     protected void sendSuccess(@NotNull CommandContext ctx, @NotNull String message) {
-        ctx.sendMessage(ColorUtil.parse("&8[&6Regions&8] &a" + message));
+        sendNotification(ctx, NotificationType.SUCCESS, message);
+    }
+
+    /**
+     * Envoie une notification visuelle (toast) au joueur.
+     */
+    protected void sendNotification(@NotNull CommandContext ctx, @NotNull NotificationType type, @NotNull String message) {
+        if (!isPlayer(ctx)) { sendMessage(ctx, message); return; }
+        NotificationUtil.send(requirePlayer(ctx), type, message);
     }
 
     /**

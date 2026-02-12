@@ -9,6 +9,8 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.core.api.util.ColorUtil;
+import com.islandium.core.api.util.NotificationType;
+import com.islandium.core.api.util.NotificationUtil;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.flag.RegionFlag;
 import com.islandium.regions.model.BoundingBox;
@@ -58,7 +60,7 @@ public class RgCommand extends AbstractCommand {
     @Override
     public CompletableFuture<Void> execute(CommandContext ctx) {
         if (!ctx.isPlayer()) {
-            ctx.sendMessage(ColorUtil.parse("&cCette commande nécessite un joueur."));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Cette commande nécessite un joueur.");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -82,7 +84,7 @@ public class RgCommand extends AbstractCommand {
         };
 
         return result.exceptionally(ex -> {
-            ctx.sendMessage(ColorUtil.parse("&cErreur: " + ex.getMessage()));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Erreur: " + ex.getMessage());
             ex.printStackTrace();
             return null;
         });
@@ -113,7 +115,7 @@ public class RgCommand extends AbstractCommand {
     private CompletableFuture<Void> executeCreate(CommandContext ctx) {
         String regionName = ctx.provided(arg1) ? ctx.get(arg1) : null;
         if (regionName == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg create <nom> [cylinder <rayon> <hauteur>]"));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg create <nom> [cylinder <rayon> <hauteur>]");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -128,8 +130,7 @@ public class RgCommand extends AbstractCommand {
             // Création d'un cylindre
             String radiusStr = ctx.provided(arg3) ? ctx.get(arg3) : null;
             if (radiusStr == null) {
-                ctx.sendMessage(ColorUtil.parse("&cUsage: /rg create <nom> cylinder <rayon> <hauteur>"));
-                ctx.sendMessage(ColorUtil.parse("&7Exemple: /rg create spawn cylinder 50 20"));
+                NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg create <nom> cylinder <rayon> <hauteur>", "Exemple: /rg create spawn cylinder 50 20");
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -141,12 +142,12 @@ public class RgCommand extends AbstractCommand {
                 radius = Integer.parseInt(parts[0]);
                 height = parts.length > 1 ? Integer.parseInt(parts[1]) : 20; // Hauteur par défaut: 20
             } catch (NumberFormatException e) {
-                ctx.sendMessage(ColorUtil.parse("&cRayon et hauteur doivent être des nombres entiers."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Rayon et hauteur doivent être des nombres entiers.");
                 return CompletableFuture.completedFuture(null);
             }
 
             if (radius <= 0 || height <= 0) {
-                ctx.sendMessage(ColorUtil.parse("&cLe rayon et la hauteur doivent être positifs."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Le rayon et la hauteur doivent être positifs.");
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -158,7 +159,7 @@ public class RgCommand extends AbstractCommand {
             int centerZ = (int) Math.floor(pos.getZ());
 
             shape = new CylinderShape(centerX, centerY, centerZ, radius, height);
-            ctx.sendMessage(ColorUtil.parse("&7Création d'un cylindre: centre=(" + centerX + "," + centerY + "," + centerZ + "), r=" + radius + ", h=" + height));
+            NotificationUtil.send(ctx, NotificationType.INFO, "Création d'un cylindre", "Centre=(" + centerX + "," + centerY + "," + centerZ + "), r=" + radius + ", h=" + height);
 
         } else {
             // Création d'un cuboid depuis la sélection
@@ -166,14 +167,12 @@ public class RgCommand extends AbstractCommand {
             try {
                 boundsOpt = SelectionHelper.getSelectionAsBoundingBox(player);
             } catch (Exception e) {
-                ctx.sendMessage(ColorUtil.parse("&cErreur lors de la récupération de la sélection: " + e.getMessage()));
-                ctx.sendMessage(ColorUtil.parse("&7Assurez-vous d'utiliser /pos1 et /pos2 pour définir une zone."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Erreur lors de la récupération de la sélection", "Utilisez /pos1 et /pos2 pour définir une zone.");
                 return CompletableFuture.completedFuture(null);
             }
 
             if (boundsOpt.isEmpty()) {
-                ctx.sendMessage(ColorUtil.parse("&cVous devez d'abord sélectionner une zone avec /pos1 et /pos2."));
-                ctx.sendMessage(ColorUtil.parse("&7Ou utilisez: /rg create <nom> cylinder <rayon> <hauteur>"));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Sélectionnez une zone avec /pos1 et /pos2", "Ou: /rg create <nom> cylinder <rayon> <hauteur>");
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -184,15 +183,13 @@ public class RgCommand extends AbstractCommand {
 
         return regionService.getRegion(worldName, regionName).thenCompose(existingOpt -> {
             if (existingOpt.isPresent()) {
-                ctx.sendMessage(ColorUtil.parse("&cUne région nommée '" + regionName + "' existe déjà."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Une région nommée '" + regionName + "' existe déjà.");
                 return CompletableFuture.completedFuture(null);
             }
 
             return regionService.createRegion(regionName, worldName, finalShape, player.getUuid())
                 .thenAccept(region -> {
-                    ctx.sendMessage(ColorUtil.parse("&aRégion '" + regionName + "' créée avec succès!"));
-                    ctx.sendMessage(ColorUtil.parse("&7Forme: " + finalShape.getShapeType()));
-                    ctx.sendMessage(ColorUtil.parse("&7Volume: " + finalShape.getVolume() + " blocs"));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, "Région '" + regionName + "' créée!", finalShape.getShapeType() + " - " + finalShape.getVolume() + " blocs");
                 });
         });
     }
@@ -201,7 +198,7 @@ public class RgCommand extends AbstractCommand {
     private CompletableFuture<Void> executeDelete(CommandContext ctx) {
         String regionName = ctx.provided(arg1) ? ctx.get(arg1) : null;
         if (regionName == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg delete <nom>"));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg delete <nom>");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -210,21 +207,21 @@ public class RgCommand extends AbstractCommand {
 
         return regionService.getRegion(worldName, regionName).thenCompose(regionOpt -> {
             if (regionOpt.isEmpty()) {
-                ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                 return CompletableFuture.completedFuture(null);
             }
 
             var region = regionOpt.get();
             if (!region.isOwner(player.getUuid())) {
-                ctx.sendMessage(ColorUtil.parse("&cVous n'êtes pas propriétaire de cette région."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Vous n'êtes pas propriétaire de cette région.");
                 return CompletableFuture.completedFuture(null);
             }
 
             return regionService.deleteRegion(worldName, regionName).thenAccept(success -> {
                 if (success) {
-                    ctx.sendMessage(ColorUtil.parse("&aRégion '" + regionName + "' supprimée."));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, "Région '" + regionName + "' supprimée.");
                 } else {
-                    ctx.sendMessage(ColorUtil.parse("&cImpossible de supprimer la région."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Impossible de supprimer la région.");
                 }
             });
         });
@@ -260,7 +257,7 @@ public class RgCommand extends AbstractCommand {
             String regionName = ctx.get(arg1);
             return regionService.getRegion(worldName, regionName).thenAccept(regionOpt -> {
                 if (regionOpt.isEmpty()) {
-                    ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                     return;
                 }
                 displayRegionInfo(ctx, regionOpt.get());
@@ -329,8 +326,7 @@ public class RgCommand extends AbstractCommand {
         String valueStr = ctx.provided(arg3) ? ctx.get(arg3) : null;
 
         if (regionName == null || flagName == null || valueStr == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg flag <région> <flag> <valeur>"));
-            ctx.sendMessage(ColorUtil.parse("&7Flags: " + getAvailableFlags()));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg flag <région> <flag> <valeur>", "Flags: " + getAvailableFlags());
             return CompletableFuture.completedFuture(null);
         }
 
@@ -339,20 +335,19 @@ public class RgCommand extends AbstractCommand {
 
         RegionFlag flag = RegionFlag.fromName(flagName);
         if (flag == null) {
-            ctx.sendMessage(ColorUtil.parse("&cFlag inconnu: " + flagName));
-            ctx.sendMessage(ColorUtil.parse("&7Flags disponibles: " + getAvailableFlags()));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Flag inconnu: " + flagName, "Flags disponibles: " + getAvailableFlags());
             return CompletableFuture.completedFuture(null);
         }
 
         return regionService.getRegion(worldName, regionName).thenCompose(regionOpt -> {
             if (regionOpt.isEmpty()) {
-                ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                 return CompletableFuture.completedFuture(null);
             }
 
             var region = regionOpt.get();
             if (!region.isOwner(player.getUuid())) {
-                ctx.sendMessage(ColorUtil.parse("&cVous n'êtes pas propriétaire de cette région."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Vous n'êtes pas propriétaire de cette région.");
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -360,9 +355,9 @@ public class RgCommand extends AbstractCommand {
 
             return regionService.setFlag(region, flag, value).thenRun(() -> {
                 if (value == null) {
-                    ctx.sendMessage(ColorUtil.parse("&aFlag '" + flagName + "' supprimé de '" + regionName + "'."));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, "Flag '" + flagName + "' supprimé de '" + regionName + "'.");
                 } else {
-                    ctx.sendMessage(ColorUtil.parse("&aFlag '" + flagName + "' défini à '" + value + "' pour '" + regionName + "'."));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, "Flag '" + flagName + "' défini à '" + value + "'", "Région: " + regionName);
                 }
             });
         });
@@ -374,7 +369,7 @@ public class RgCommand extends AbstractCommand {
         String playerName = ctx.provided(arg2) ? ctx.get(arg2) : null;
 
         if (regionName == null || playerName == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg addmember <région> <joueur>"));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg addmember <région> <joueur>");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -383,30 +378,30 @@ public class RgCommand extends AbstractCommand {
 
         return regionService.getRegion(worldName, regionName).thenCompose(regionOpt -> {
             if (regionOpt.isEmpty()) {
-                ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                 return CompletableFuture.completedFuture(null);
             }
 
             var region = regionOpt.get();
             if (!region.isOwner(player.getUuid())) {
-                ctx.sendMessage(ColorUtil.parse("&cVous n'êtes pas propriétaire de cette région."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Vous n'êtes pas propriétaire de cette région.");
                 return CompletableFuture.completedFuture(null);
             }
 
             return IslandiumPlugin.get().getPlayerManager().getPlayerUUID(playerName).thenCompose(uuidOpt -> {
                 if (uuidOpt.isEmpty()) {
-                    ctx.sendMessage(ColorUtil.parse("&cJoueur '" + playerName + "' non trouvé."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Joueur '" + playerName + "' non trouvé.");
                     return CompletableFuture.completedFuture(null);
                 }
 
                 UUID targetUuid = uuidOpt.get();
                 if (region.isMember(targetUuid)) {
-                    ctx.sendMessage(ColorUtil.parse("&cCe joueur est déjà membre."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Ce joueur est déjà membre.");
                     return CompletableFuture.completedFuture(null);
                 }
 
                 return regionService.addMember(region, targetUuid, player.getUuid()).thenRun(() -> {
-                    ctx.sendMessage(ColorUtil.parse("&a" + playerName + " ajouté comme membre de '" + regionName + "'."));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, playerName + " ajouté comme membre", "Région: " + regionName);
                 });
             });
         });
@@ -418,7 +413,7 @@ public class RgCommand extends AbstractCommand {
         String playerName = ctx.provided(arg2) ? ctx.get(arg2) : null;
 
         if (regionName == null || playerName == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg addowner <région> <joueur>"));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg addowner <région> <joueur>");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -427,30 +422,30 @@ public class RgCommand extends AbstractCommand {
 
         return regionService.getRegion(worldName, regionName).thenCompose(regionOpt -> {
             if (regionOpt.isEmpty()) {
-                ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                 return CompletableFuture.completedFuture(null);
             }
 
             var region = regionOpt.get();
             if (!region.isOwner(player.getUuid())) {
-                ctx.sendMessage(ColorUtil.parse("&cVous n'êtes pas propriétaire de cette région."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Vous n'êtes pas propriétaire de cette région.");
                 return CompletableFuture.completedFuture(null);
             }
 
             return IslandiumPlugin.get().getPlayerManager().getPlayerUUID(playerName).thenCompose(uuidOpt -> {
                 if (uuidOpt.isEmpty()) {
-                    ctx.sendMessage(ColorUtil.parse("&cJoueur '" + playerName + "' non trouvé."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Joueur '" + playerName + "' non trouvé.");
                     return CompletableFuture.completedFuture(null);
                 }
 
                 UUID targetUuid = uuidOpt.get();
                 if (region.isOwner(targetUuid)) {
-                    ctx.sendMessage(ColorUtil.parse("&cCe joueur est déjà propriétaire."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Ce joueur est déjà propriétaire.");
                     return CompletableFuture.completedFuture(null);
                 }
 
                 return regionService.addOwner(region, targetUuid, player.getUuid()).thenRun(() -> {
-                    ctx.sendMessage(ColorUtil.parse("&a" + playerName + " ajouté comme propriétaire de '" + regionName + "'."));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, playerName + " ajouté comme propriétaire", "Région: " + regionName);
                 });
             });
         });
@@ -462,7 +457,7 @@ public class RgCommand extends AbstractCommand {
         String playerName = ctx.provided(arg2) ? ctx.get(arg2) : null;
 
         if (regionName == null || playerName == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg removemember <région> <joueur>"));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg removemember <région> <joueur>");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -471,26 +466,26 @@ public class RgCommand extends AbstractCommand {
 
         return regionService.getRegion(worldName, regionName).thenCompose(regionOpt -> {
             if (regionOpt.isEmpty()) {
-                ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                 return CompletableFuture.completedFuture(null);
             }
 
             var region = regionOpt.get();
             if (!region.isOwner(player.getUuid())) {
-                ctx.sendMessage(ColorUtil.parse("&cVous n'êtes pas propriétaire de cette région."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Vous n'êtes pas propriétaire de cette région.");
                 return CompletableFuture.completedFuture(null);
             }
 
             return IslandiumPlugin.get().getPlayerManager().getPlayerUUID(playerName).thenCompose(uuidOpt -> {
                 if (uuidOpt.isEmpty()) {
-                    ctx.sendMessage(ColorUtil.parse("&cJoueur '" + playerName + "' non trouvé."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Joueur '" + playerName + "' non trouvé.");
                     return CompletableFuture.completedFuture(null);
                 }
 
                 UUID targetUuid = uuidOpt.get();
 
                 return regionService.removeMember(region, targetUuid).thenRun(() -> {
-                    ctx.sendMessage(ColorUtil.parse("&a" + playerName + " retiré des membres de '" + regionName + "'."));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, playerName + " retiré des membres", "Région: " + regionName);
                 });
             });
         });
@@ -502,7 +497,7 @@ public class RgCommand extends AbstractCommand {
         String playerName = ctx.provided(arg2) ? ctx.get(arg2) : null;
 
         if (regionName == null || playerName == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg removeowner <région> <joueur>"));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg removeowner <région> <joueur>");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -511,26 +506,26 @@ public class RgCommand extends AbstractCommand {
 
         return regionService.getRegion(worldName, regionName).thenCompose(regionOpt -> {
             if (regionOpt.isEmpty()) {
-                ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                 return CompletableFuture.completedFuture(null);
             }
 
             var region = regionOpt.get();
             if (!region.isOwner(player.getUuid())) {
-                ctx.sendMessage(ColorUtil.parse("&cVous n'êtes pas propriétaire de cette région."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Vous n'êtes pas propriétaire de cette région.");
                 return CompletableFuture.completedFuture(null);
             }
 
             return IslandiumPlugin.get().getPlayerManager().getPlayerUUID(playerName).thenCompose(uuidOpt -> {
                 if (uuidOpt.isEmpty()) {
-                    ctx.sendMessage(ColorUtil.parse("&cJoueur '" + playerName + "' non trouvé."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Joueur '" + playerName + "' non trouvé.");
                     return CompletableFuture.completedFuture(null);
                 }
 
                 UUID targetUuid = uuidOpt.get();
 
                 return regionService.removeOwner(region, targetUuid).thenRun(() -> {
-                    ctx.sendMessage(ColorUtil.parse("&a" + playerName + " retiré des propriétaires de '" + regionName + "'."));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, playerName + " retiré des propriétaires", "Région: " + regionName);
                 });
             });
         });
@@ -588,13 +583,12 @@ public class RgCommand extends AbstractCommand {
         Optional<RegionImpl> existingOpt = regionService.getGlobalRegion(worldName);
 
         if (existingOpt.isPresent()) {
-            ctx.sendMessage(ColorUtil.parse("&cUne région globale existe déjà dans ce monde."));
-            ctx.sendMessage(ColorUtil.parse("&7Utilisez &e/rg global &7pour voir ses détails."));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Une région globale existe déjà dans ce monde.", "Utilisez /rg global pour voir ses détails.");
             return CompletableFuture.completedFuture(null);
         }
 
         return regionService.getOrCreateGlobalRegion(worldName).thenAccept(global -> {
-            ctx.sendMessage(ColorUtil.parse("&aRégion globale créée pour le monde '" + worldName + "'!"));
+            NotificationUtil.send(ctx, NotificationType.SUCCESS, "Région globale créée!", "Monde: " + worldName);
             ctx.sendMessage(ColorUtil.parse("&7Cette région couvre tout le monde avec une priorité très basse (" + RegionService.GLOBAL_REGION_PRIORITY + ")."));
             ctx.sendMessage(ColorUtil.parse("&7Les autres régions auront toujours priorité sur elle."));
             ctx.sendMessage(ColorUtil.parse("&7Utilisez &e/rg global flag <flag> <valeur> &7pour configurer les flags par défaut."));
@@ -605,15 +599,15 @@ public class RgCommand extends AbstractCommand {
         Optional<RegionImpl> globalOpt = regionService.getGlobalRegion(worldName);
 
         if (globalOpt.isEmpty()) {
-            ctx.sendMessage(ColorUtil.parse("&cAucune région globale dans ce monde."));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Aucune région globale dans ce monde.");
             return CompletableFuture.completedFuture(null);
         }
 
         return regionService.deleteRegion(worldName, RegionService.GLOBAL_REGION_NAME).thenAccept(success -> {
             if (success) {
-                ctx.sendMessage(ColorUtil.parse("&aRégion globale supprimée."));
+                NotificationUtil.send(ctx, NotificationType.SUCCESS, "Région globale supprimée.");
             } else {
-                ctx.sendMessage(ColorUtil.parse("&cImpossible de supprimer la région globale."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "Impossible de supprimer la région globale.");
             }
         });
     }
@@ -623,22 +617,19 @@ public class RgCommand extends AbstractCommand {
         String valueStr = ctx.provided(arg3) ? ctx.get(arg3) : null;
 
         if (flagName == null || valueStr == null) {
-            ctx.sendMessage(ColorUtil.parse("&cUsage: /rg global flag <flag> <valeur>"));
-            ctx.sendMessage(ColorUtil.parse("&7Flags: " + getAvailableFlags()));
+            NotificationUtil.send(ctx, NotificationType.WARNING, "Usage: /rg global flag <flag> <valeur>", "Flags: " + getAvailableFlags());
             return CompletableFuture.completedFuture(null);
         }
 
         Optional<RegionImpl> globalOpt = regionService.getGlobalRegion(worldName);
         if (globalOpt.isEmpty()) {
-            ctx.sendMessage(ColorUtil.parse("&cAucune région globale dans ce monde."));
-            ctx.sendMessage(ColorUtil.parse("&7Utilisez &e/rg global create &7pour en créer une."));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Aucune région globale dans ce monde.", "Utilisez /rg global create pour en créer une.");
             return CompletableFuture.completedFuture(null);
         }
 
         RegionFlag flag = RegionFlag.fromName(flagName);
         if (flag == null) {
-            ctx.sendMessage(ColorUtil.parse("&cFlag inconnu: " + flagName));
-            ctx.sendMessage(ColorUtil.parse("&7Flags disponibles: " + getAvailableFlags()));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Flag inconnu: " + flagName, "Flags disponibles: " + getAvailableFlags());
             return CompletableFuture.completedFuture(null);
         }
 
@@ -647,9 +638,9 @@ public class RgCommand extends AbstractCommand {
 
         return regionService.setFlag(global, flag, value).thenRun(() -> {
             if (value == null) {
-                ctx.sendMessage(ColorUtil.parse("&aFlag '" + flagName + "' supprimé de la région globale."));
+                NotificationUtil.send(ctx, NotificationType.SUCCESS, "Flag '" + flagName + "' supprimé de la région globale.");
             } else {
-                ctx.sendMessage(ColorUtil.parse("&aFlag '" + flagName + "' défini à '" + value + "' pour la région globale."));
+                NotificationUtil.send(ctx, NotificationType.SUCCESS, "Flag '" + flagName + "' défini à '" + value + "'", "Région globale");
             }
         });
     }
@@ -664,7 +655,7 @@ public class RgCommand extends AbstractCommand {
             String regionName = ctx.get(arg1);
             return regionService.getRegion(worldName, regionName).thenAccept(regionOpt -> {
                 if (regionOpt.isEmpty()) {
-                    ctx.sendMessage(ColorUtil.parse("&cRégion '" + regionName + "' non trouvée."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "Région '" + regionName + "' non trouvée.");
                     return;
                 }
 
@@ -672,7 +663,7 @@ public class RgCommand extends AbstractCommand {
 
                 // Vérifier si c'est une région globale
                 if (RegionService.isGlobalRegion(region)) {
-                    ctx.sendMessage(ColorUtil.parse("&cLa région globale ne peut pas être visualisée (trop grande)."));
+                    NotificationUtil.send(ctx, NotificationType.ERROR, "La région globale ne peut pas être visualisée (trop grande).");
                     return;
                 }
 
@@ -680,10 +671,9 @@ public class RgCommand extends AbstractCommand {
                 boolean nowActive = vizService.toggleVisualization(player, region);
 
                 if (nowActive) {
-                    ctx.sendMessage(ColorUtil.parse("&aVisualisation de '" + regionName + "' activée (5 min)."));
-                    ctx.sendMessage(ColorUtil.parse("&7Forme: " + region.getShape().getShapeType()));
+                    NotificationUtil.send(ctx, NotificationType.SUCCESS, "Visualisation de '" + regionName + "' activée", "Forme: " + region.getShape().getShapeType() + " (5 min)");
                 } else {
-                    ctx.sendMessage(ColorUtil.parse("&7Visualisation désactivée."));
+                    NotificationUtil.send(ctx, NotificationType.INFO, "Visualisation désactivée.");
                 }
             });
         }
@@ -703,8 +693,7 @@ public class RgCommand extends AbstractCommand {
             .toList();
 
         if (regions.isEmpty()) {
-            ctx.sendMessage(ColorUtil.parse("&7Aucune région visualisable à votre position."));
-            ctx.sendMessage(ColorUtil.parse("&7Usage: /rg vis <nom> pour visualiser une région spécifique."));
+            NotificationUtil.send(ctx, NotificationType.INFO, "Aucune région visualisable à votre position.", "Usage: /rg vis <nom>");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -714,10 +703,9 @@ public class RgCommand extends AbstractCommand {
         boolean nowActive = vizService.toggleVisualization(player, region);
 
         if (nowActive) {
-            ctx.sendMessage(ColorUtil.parse("&aVisualisation de '" + region.getName() + "' activée (5 min)."));
-            ctx.sendMessage(ColorUtil.parse("&7Forme: " + region.getShape().getShapeType()));
+            NotificationUtil.send(ctx, NotificationType.SUCCESS, "Visualisation de '" + region.getName() + "' activée", "Forme: " + region.getShape().getShapeType() + " (5 min)");
         } else {
-            ctx.sendMessage(ColorUtil.parse("&7Visualisation désactivée."));
+            NotificationUtil.send(ctx, NotificationType.INFO, "Visualisation désactivée.");
         }
 
         return CompletableFuture.completedFuture(null);
@@ -730,7 +718,7 @@ public class RgCommand extends AbstractCommand {
 
         var ref = player.getReference();
         if (ref == null || !ref.isValid()) {
-            ctx.sendMessage(ColorUtil.parse("&cErreur: impossible d'ouvrir l'interface."));
+            NotificationUtil.send(ctx, NotificationType.ERROR, "Impossible d'ouvrir l'interface.");
             return CompletableFuture.completedFuture(null);
         }
 
@@ -741,7 +729,7 @@ public class RgCommand extends AbstractCommand {
             var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
 
             if (playerRef == null) {
-                ctx.sendMessage(ColorUtil.parse("&cErreur: PlayerRef non trouvé."));
+                NotificationUtil.send(ctx, NotificationType.ERROR, "PlayerRef non trouvé.");
                 return;
             }
 

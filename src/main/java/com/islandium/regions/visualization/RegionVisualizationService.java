@@ -276,7 +276,8 @@ public class RegionVisualizationService {
                 color,
                 DISPLAY_DURATION,
                 true,
-                null
+                null,
+                1.0f
         );
     }
 
@@ -295,7 +296,8 @@ public class RegionVisualizationService {
                 color,
                 DISPLAY_DURATION,
                 true,
-                null
+                null,
+                1.0f
         );
     }
 }

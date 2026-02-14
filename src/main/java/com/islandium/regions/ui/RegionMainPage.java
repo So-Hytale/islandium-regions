@@ -1247,7 +1247,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         RegionImpl region = regionOpt.get();
 
-        // Pas de téléportation pour la région globale
+        // Pas de teleportation pour la region globale
         if (RegionService.isGlobalRegion(region)) {
             NotificationUtil.send(player, NotificationType.ERROR, "Impossible de se teleporter a la region globale.");
             return;
@@ -1268,23 +1268,24 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             centerY = shape.getEnclosingBounds().getMaxY() + 1;
         }
 
+        // Utiliser TeleportService pour sauvegarder /back et centraliser les TP
         try {
-            Ref<EntityStore> ref = player.getReference();
-            if (ref != null && ref.isValid()) {
-                Store<EntityStore> store = ref.getStore();
-                TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
-                if (transform != null) {
-                    Vector3d targetPos = new Vector3d(centerX, centerY, centerZ);
-                    Vector3f currentRotation = transform.getRotation().clone();
-                    Teleport teleport = new Teleport(targetPos, currentRotation);
-                    store.addComponent(ref, Teleport.getComponentType(), teleport);
+            com.islandium.core.IslandiumPlugin core = com.islandium.core.IslandiumPlugin.get();
+            if (core != null) {
+                var islandiumPlayerOpt = core.getPlayerManager().getOnlinePlayer(player.getUuid());
+                if (islandiumPlayerOpt.isPresent()) {
+                    var destination = com.islandium.core.api.location.ServerLocation.of(
+                        core.getServerName(), worldName,
+                        centerX, centerY, centerZ, 0f, 0f
+                    );
+                    core.getTeleportService().teleportInstant(islandiumPlayerOpt.get(), destination);
                     NotificationUtil.send(player, NotificationType.SUCCESS, "Teleporte au centre de '" + region.getName() + "'");
                     return;
                 }
             }
             NotificationUtil.send(player, NotificationType.ERROR, "Impossible de teleporter.");
         } catch (Exception e) {
-            NotificationUtil.send(player, NotificationType.ERROR, "Erreur lors de la teleportation");
+            NotificationUtil.send(player, NotificationType.ERROR, "Erreur lors de la teleportation: " + e.getMessage());
         }
     }
 

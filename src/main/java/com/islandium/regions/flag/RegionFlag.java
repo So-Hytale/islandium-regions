@@ -35,17 +35,17 @@ public enum RegionFlag {
     /**
      * Autorise les interactions avec les blocs (portes, leviers, etc.).
      */
-    INTERACT("interact", Boolean.TRUE, FlagType.BOOLEAN, "Autorise les interactions", ImplementationStatus.NOT_IMPLEMENTED),
+    INTERACT("interact", Boolean.TRUE, FlagType.BOOLEAN, "Autorise les interactions", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise l'utilisation d'items/blocs.
      */
-    USE("use", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'utilisation", ImplementationStatus.NOT_IMPLEMENTED),
+    USE("use", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'utilisation", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise l'accès aux coffres.
      */
-    CHEST_ACCESS("chest-access", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'acces aux coffres", ImplementationStatus.NOT_IMPLEMENTED),
+    CHEST_ACCESS("chest-access", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'acces aux coffres", ImplementationStatus.IMPLEMENTED),
 
     // === Flags de combat ===
 

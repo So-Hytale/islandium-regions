@@ -19,6 +19,7 @@ import com.islandium.regions.event.DropItemEventSystem;
 import com.islandium.regions.event.ItemPickupEventSystem;
 import com.islandium.regions.event.PlaceBlockEventSystem;
 import com.islandium.regions.event.PlayerMovementTracker;
+import com.islandium.regions.event.UseBlockEventSystem;
 import com.islandium.regions.service.RegionService;
 import com.islandium.regions.spatial.ChunkBasedSpatialIndex;
 import com.islandium.regions.spatial.SpatialIndex;
@@ -86,10 +87,11 @@ public class RegionsPlugin extends JavaPlugin {
         // Enregistrer les systèmes ECS pour les events
         getEntityStoreRegistry().registerSystem(new BreakBlockEventSystem());
         getEntityStoreRegistry().registerSystem(new PlaceBlockEventSystem());
+        getEntityStoreRegistry().registerSystem(new UseBlockEventSystem());
         getEntityStoreRegistry().registerSystem(new DamageEventSystem());
         getEntityStoreRegistry().registerSystem(new DropItemEventSystem());
         getEntityStoreRegistry().registerSystem(new ItemPickupEventSystem());
-        log(Level.INFO, "ECS Event systems registered (5 active listeners: BreakBlock, PlaceBlock, Damage, DropItem, ItemPickup)!");
+        log(Level.INFO, "ECS Event systems registered (6 active listeners: BreakBlock, PlaceBlock, UseBlock, Damage, DropItem, ItemPickup)!");
     }
 
     /**

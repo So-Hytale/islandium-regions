@@ -173,7 +173,7 @@ public class DamageEventSystem extends EntityEventSystem<EntityStore, Damage> {
                 if (!pvpAllowed) {
                     damage.setCancelled(true);
                     String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-                    NotificationUtil.send(attackerPlayer, NotificationType.WARNING, "Le PvP est desactive dans " + regionDisplayName);
+                    NotificationUtil.send(attackerPlayer, NotificationType.WARNING, "Le PvP est desactive dans " + regionDisplayName + " (pvp)");
                     plugin.log(Level.INFO, "[Damage] CANCELLED (PVP) - Attacker: " + attackerPlayer.getUuid()
                         + " -> Target: " + targetPlayer.getUuid() + " in region: " + region.getName());
                     return;

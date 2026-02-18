@@ -140,7 +140,7 @@ public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItem
             event.setCancelled(true);
 
             String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-            NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas drop d'items dans " + regionDisplayName);
+            NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas drop d'items dans " + regionDisplayName + " (item-drop)");
 
             plugin.log(Level.INFO, "[ItemDrop] CANCELLED - Player: " + player.getUuid()
                 + " in region: " + region.getName());

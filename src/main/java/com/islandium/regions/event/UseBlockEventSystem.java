@@ -99,7 +99,7 @@ public class UseBlockEventSystem extends EntityEventSystem<EntityStore, UseBlock
 
             if (player != null) {
                 String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-                NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas interagir dans " + regionDisplayName);
+                NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas interagir dans " + regionDisplayName + " (interact)");
             }
         }
     }

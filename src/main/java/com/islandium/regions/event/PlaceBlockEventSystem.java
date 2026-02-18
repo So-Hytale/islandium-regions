@@ -98,7 +98,7 @@ public class PlaceBlockEventSystem extends EntityEventSystem<EntityStore, PlaceB
             // Envoyer un message au joueur
             if (player != null) {
                 String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-                NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas placer de blocs dans " + regionDisplayName);
+                NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas placer de blocs dans " + regionDisplayName + " (block-place)");
             }
         }
     }

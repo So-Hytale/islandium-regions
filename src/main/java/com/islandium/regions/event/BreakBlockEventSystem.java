@@ -95,7 +95,7 @@ public class BreakBlockEventSystem extends EntityEventSystem<EntityStore, BreakB
             // Envoyer un message au joueur
             if (player != null) {
                 String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-                NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas casser de blocs dans " + regionDisplayName);
+                NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas casser de blocs dans " + regionDisplayName + " (block-break)");
             }
         }
     }

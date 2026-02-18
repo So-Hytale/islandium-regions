@@ -140,7 +140,7 @@ public class ItemPickupEventSystem extends EntityEventSystem<EntityStore, Intera
             event.setCancelled(true);
 
             String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
-            NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas ramasser d'items dans " + regionDisplayName);
+            NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas ramasser d'items dans " + regionDisplayName + " (item-pickup)");
 
             plugin.log(Level.INFO, "[ItemPickup] CANCELLED - Player: " + player.getUuid()
                 + " in region: " + region.getName());

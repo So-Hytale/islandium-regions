@@ -14,11 +14,16 @@ import com.islandium.regions.database.RegionPlayerFlagRepository;
 import com.islandium.regions.database.BypassRepository;
 import com.islandium.regions.database.RegionRepository;
 import com.islandium.regions.event.BreakBlockEventSystem;
+import com.islandium.regions.event.ChangeGameModeEventSystem;
+import com.islandium.regions.event.CraftRecipeEventSystem;
+import com.islandium.regions.event.DamageBlockEventSystem;
 import com.islandium.regions.event.DamageEventSystem;
+import com.islandium.regions.event.DiscoverZoneEventSystem;
 import com.islandium.regions.event.DropItemEventSystem;
 import com.islandium.regions.event.ItemPickupEventSystem;
 import com.islandium.regions.event.PlaceBlockEventSystem;
 import com.islandium.regions.event.PlayerMovementTracker;
+import com.islandium.regions.event.SwitchActiveSlotEventSystem;
 import com.islandium.regions.event.UseBlockEventSystem;
 import com.islandium.regions.service.RegionService;
 import com.islandium.regions.spatial.ChunkBasedSpatialIndex;
@@ -91,7 +96,13 @@ public class RegionsPlugin extends JavaPlugin {
         getEntityStoreRegistry().registerSystem(new DamageEventSystem());
         getEntityStoreRegistry().registerSystem(new DropItemEventSystem());
         getEntityStoreRegistry().registerSystem(new ItemPickupEventSystem());
-        log(Level.INFO, "ECS Event systems registered (6 active listeners: BreakBlock, PlaceBlock, UseBlock, Damage, DropItem, ItemPickup)!");
+        // Events de test (logs uniquement)
+        getEntityStoreRegistry().registerSystem(new CraftRecipeEventSystem());
+        getEntityStoreRegistry().registerSystem(new DamageBlockEventSystem());
+        getEntityStoreRegistry().registerSystem(new DiscoverZoneEventSystem());
+        getEntityStoreRegistry().registerSystem(new SwitchActiveSlotEventSystem());
+        getEntityStoreRegistry().registerSystem(new ChangeGameModeEventSystem());
+        log(Level.INFO, "ECS Event systems registered (11 listeners)");
     }
 
     /**

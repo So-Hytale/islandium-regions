@@ -29,16 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
-/**
- * Gere les evenements de ramassage d'items pour le flag ITEM_PICKUP.
- *
- * Utilise le systeme ECS InteractivelyPickupItemEvent (CancellableEcsEvent)
- * pour intercepter et annuler le ramassage d'items selon les flags de la region.
- *
- * Logique:
- * - ITEM_PICKUP = false -> Annule le ramassage d'items dans la region
- * - Membres/owners de la region peuvent toujours ramasser (selon permission)
- */
 public class ItemPickupEventSystem extends EntityEventSystem<EntityStore, InteractivelyPickupItemEvent> {
 
     public ItemPickupEventSystem() {
@@ -51,28 +41,16 @@ public class ItemPickupEventSystem extends EntityEventSystem<EntityStore, Intera
                        @Nonnull InteractivelyPickupItemEvent event) {
 
         RegionsPlugin plugin = RegionsPlugin.get();
-        if (plugin == null || plugin.getRegionService() == null) {
-            return;
-        }
+        if (plugin == null || plugin.getRegionService() == null) return;
 
-        plugin.log(Level.INFO, "[ItemPickup] DEBUG: >>> InteractivelyPickupItemEvent received!");
-
-        // Recuperer le joueur qui ramasse
         Player player = null;
         try {
             player = archetypeChunk.getComponent(index, Player.getComponentType());
         } catch (Exception e) {
-            plugin.log(Level.INFO, "[ItemPickup] DEBUG: Exception getting Player component: " + e.getMessage());
-        }
-
-        if (player == null) {
-            plugin.log(Level.INFO, "[ItemPickup] DEBUG: Not a player, skipping");
             return;
         }
+        if (player == null) return;
 
-        plugin.log(Level.INFO, "[ItemPickup] DEBUG: Player: " + player.getUuid());
-
-        // Determiner le monde
         String worldName;
         try {
             var externalData = store.getExternalData();
@@ -85,7 +63,6 @@ public class ItemPickupEventSystem extends EntityEventSystem<EntityStore, Intera
             worldName = plugin.getCurrentWorldName();
         }
 
-        // Recuperer la position du joueur
         int x, y, z;
         try {
             var transform = player.getTransformComponent();
@@ -94,27 +71,17 @@ public class ItemPickupEventSystem extends EntityEventSystem<EntityStore, Intera
                 y = (int) transform.getPosition().getY();
                 z = (int) transform.getPosition().getZ();
             } else {
-                plugin.log(Level.WARNING, "[ItemPickup] DEBUG: Transform is null for player " + player.getUuid());
                 return;
             }
         } catch (Exception e) {
-            plugin.log(Level.WARNING, "[ItemPickup] DEBUG: Exception getting position: " + e.getMessage());
             return;
         }
 
-        plugin.log(Level.INFO, "[ItemPickup] DEBUG: Player pos: " + x + "," + y + "," + z + " world: " + worldName);
-
-        // Trouver les regions a cette position
         List<RegionImpl> regions = plugin.getRegionService().getRegionsAt(worldName, x, y, z);
-        if (regions.isEmpty()) {
-            plugin.log(Level.INFO, "[ItemPickup] DEBUG: No region at position, allowing pickup");
-            return;
-        }
+        if (regions.isEmpty()) return;
 
         RegionImpl region = regions.get(0);
-        plugin.log(Level.INFO, "[ItemPickup] DEBUG: Player in region: " + region.getName() + " (id=" + region.getId() + ")");
 
-        // Recuperer les permissions du joueur
         PlayerPermissions playerPermissions = null;
         try {
             UUID playerUuid = player.getUuid();
@@ -128,37 +95,18 @@ public class ItemPickupEventSystem extends EntityEventSystem<EntityStore, Intera
         } catch (Exception ignored) {
         }
 
-        // Verifier le flag ITEM_PICKUP avec la resolution Joueur > Groupe > Region
-        Object itemPickupFlag = region.getFlag(RegionFlag.ITEM_PICKUP);
-        plugin.log(Level.INFO, "[ItemPickup] DEBUG: Flag ITEM_PICKUP = " + itemPickupFlag);
-
-        boolean allowed = RegionPermissionChecker.isAllowed(
-            region, player, RegionFlag.ITEM_PICKUP, null, playerPermissions);
-        plugin.log(Level.INFO, "[ItemPickup] DEBUG: Allowed (after permission check) = " + allowed);
+        boolean allowed = RegionPermissionChecker.isAllowed(region, player, RegionFlag.ITEM_PICKUP, null, playerPermissions);
 
         if (!allowed) {
             event.setCancelled(true);
-
             String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
             NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas ramasser d'items dans " + regionDisplayName + " (item-pickup)");
-
-            plugin.log(Level.INFO, "[ItemPickup] CANCELLED - Player: " + player.getUuid()
-                + " in region: " + region.getName());
-        } else {
-            plugin.log(Level.INFO, "[ItemPickup] ALLOWED - Player: " + player.getUuid()
-                + " in region: " + region.getName());
         }
     }
 
-    @Nullable
-    @Override
-    public Query<EntityStore> getQuery() {
-        return PlayerRef.getComponentType();
-    }
+    @Nullable @Override
+    public Query<EntityStore> getQuery() { return PlayerRef.getComponentType(); }
 
-    @Nonnull
-    @Override
-    public Set<Dependency<EntityStore>> getDependencies() {
-        return Collections.singleton(RootDependency.first());
-    }
+    @Nonnull @Override
+    public Set<Dependency<EntityStore>> getDependencies() { return Collections.singleton(RootDependency.first()); }
 }

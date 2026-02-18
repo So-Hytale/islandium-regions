@@ -29,16 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
-/**
- * Gere les evenements de drop d'items pour le flag ITEM_DROP.
- *
- * Utilise le systeme ECS DropItemEvent (CancellableEcsEvent)
- * pour intercepter et annuler les drops d'items selon les flags de la region.
- *
- * Logique:
- * - ITEM_DROP = false -> Annule le drop d'items dans la region
- * - Membres/owners de la region peuvent toujours drop (selon permission)
- */
 public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItemEvent> {
 
     public DropItemEventSystem() {
@@ -51,28 +41,16 @@ public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItem
                        @Nonnull DropItemEvent event) {
 
         RegionsPlugin plugin = RegionsPlugin.get();
-        if (plugin == null || plugin.getRegionService() == null) {
-            return;
-        }
+        if (plugin == null || plugin.getRegionService() == null) return;
 
-        plugin.log(Level.INFO, "[ItemDrop] DEBUG: >>> DropItemEvent received!");
-
-        // Recuperer le joueur qui drop
         Player player = null;
         try {
             player = archetypeChunk.getComponent(index, Player.getComponentType());
         } catch (Exception e) {
-            plugin.log(Level.INFO, "[ItemDrop] DEBUG: Exception getting Player component: " + e.getMessage());
-        }
-
-        if (player == null) {
-            plugin.log(Level.INFO, "[ItemDrop] DEBUG: Not a player, skipping");
             return;
         }
+        if (player == null) return;
 
-        plugin.log(Level.INFO, "[ItemDrop] DEBUG: Player: " + player.getUuid());
-
-        // Determiner le monde
         String worldName;
         try {
             var externalData = store.getExternalData();
@@ -85,7 +63,6 @@ public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItem
             worldName = plugin.getCurrentWorldName();
         }
 
-        // Recuperer la position du joueur
         int x, y, z;
         try {
             var transform = player.getTransformComponent();
@@ -94,27 +71,17 @@ public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItem
                 y = (int) transform.getPosition().getY();
                 z = (int) transform.getPosition().getZ();
             } else {
-                plugin.log(Level.WARNING, "[ItemDrop] DEBUG: Transform is null for player " + player.getUuid());
                 return;
             }
         } catch (Exception e) {
-            plugin.log(Level.WARNING, "[ItemDrop] DEBUG: Exception getting position: " + e.getMessage());
             return;
         }
 
-        plugin.log(Level.INFO, "[ItemDrop] DEBUG: Player pos: " + x + "," + y + "," + z + " world: " + worldName);
-
-        // Trouver les regions a cette position
         List<RegionImpl> regions = plugin.getRegionService().getRegionsAt(worldName, x, y, z);
-        if (regions.isEmpty()) {
-            plugin.log(Level.INFO, "[ItemDrop] DEBUG: No region at position, allowing drop");
-            return;
-        }
+        if (regions.isEmpty()) return;
 
         RegionImpl region = regions.get(0);
-        plugin.log(Level.INFO, "[ItemDrop] DEBUG: Player in region: " + region.getName() + " (id=" + region.getId() + ")");
 
-        // Recuperer les permissions du joueur
         PlayerPermissions playerPermissions = null;
         try {
             UUID playerUuid = player.getUuid();
@@ -128,37 +95,18 @@ public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItem
         } catch (Exception ignored) {
         }
 
-        // Verifier le flag ITEM_DROP avec la resolution Joueur > Groupe > Region
-        Object itemDropFlag = region.getFlag(RegionFlag.ITEM_DROP);
-        plugin.log(Level.INFO, "[ItemDrop] DEBUG: Flag ITEM_DROP = " + itemDropFlag);
-
-        boolean allowed = RegionPermissionChecker.isAllowed(
-            region, player, RegionFlag.ITEM_DROP, null, playerPermissions);
-        plugin.log(Level.INFO, "[ItemDrop] DEBUG: Allowed (after permission check) = " + allowed);
+        boolean allowed = RegionPermissionChecker.isAllowed(region, player, RegionFlag.ITEM_DROP, null, playerPermissions);
 
         if (!allowed) {
             event.setCancelled(true);
-
             String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
             NotificationUtil.send(player, NotificationType.WARNING, "Vous ne pouvez pas drop d'items dans " + regionDisplayName + " (item-drop)");
-
-            plugin.log(Level.INFO, "[ItemDrop] CANCELLED - Player: " + player.getUuid()
-                + " in region: " + region.getName());
-        } else {
-            plugin.log(Level.INFO, "[ItemDrop] ALLOWED - Player: " + player.getUuid()
-                + " in region: " + region.getName());
         }
     }
 
-    @Nullable
-    @Override
-    public Query<EntityStore> getQuery() {
-        return PlayerRef.getComponentType();
-    }
+    @Nullable @Override
+    public Query<EntityStore> getQuery() { return PlayerRef.getComponentType(); }
 
-    @Nonnull
-    @Override
-    public Set<Dependency<EntityStore>> getDependencies() {
-        return Collections.singleton(RootDependency.first());
-    }
+    @Nonnull @Override
+    public Set<Dependency<EntityStore>> getDependencies() { return Collections.singleton(RootDependency.first()); }
 }

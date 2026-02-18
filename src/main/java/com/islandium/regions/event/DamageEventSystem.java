@@ -131,10 +131,10 @@ public class DamageEventSystem extends EntityEventSystem<EntityStore, Damage> {
         }
 
         // === 1. Verifier INVINCIBLE ===
-        Boolean invincible = region.getFlag(RegionFlag.INVINCIBLE);
+        Object invincible = region.getFlag(RegionFlag.INVINCIBLE);
         plugin.log(Level.INFO, "[Damage] DEBUG: Flag INVINCIBLE = " + invincible);
 
-        if (invincible != null && invincible) {
+        if (Boolean.TRUE.equals(invincible)) {
             damage.setCancelled(true);
             plugin.log(Level.INFO, "[Damage] CANCELLED (INVINCIBLE) - Player: " + targetPlayer.getUuid()
                 + " in region: " + region.getName() + " | Damage: " + damage.getAmount());
@@ -163,7 +163,7 @@ public class DamageEventSystem extends EntityEventSystem<EntityStore, Damage> {
                 plugin.log(Level.INFO, "[Damage] DEBUG: PVP detected! Attacker: " + attackerPlayer.getUuid()
                     + " -> Target: " + targetPlayer.getUuid());
 
-                Boolean pvpFlag = region.getFlag(RegionFlag.PVP);
+                Object pvpFlag = region.getFlag(RegionFlag.PVP);
                 plugin.log(Level.INFO, "[Damage] DEBUG: Flag PVP = " + pvpFlag);
 
                 boolean pvpAllowed = RegionPermissionChecker.isAllowed(
@@ -185,7 +185,7 @@ public class DamageEventSystem extends EntityEventSystem<EntityStore, Damage> {
                 // C'est un mob qui attaque un joueur -> verifier MOB_DAMAGE
                 plugin.log(Level.INFO, "[Damage] DEBUG: MOB -> Player detected! Target: " + targetPlayer.getUuid());
 
-                Boolean mobDamageFlag = region.getFlag(RegionFlag.MOB_DAMAGE);
+                Object mobDamageFlag = region.getFlag(RegionFlag.MOB_DAMAGE);
                 plugin.log(Level.INFO, "[Damage] DEBUG: Flag MOB_DAMAGE = " + mobDamageFlag);
 
                 boolean mobDamageAllowed = RegionPermissionChecker.isAllowed(

@@ -1066,19 +1066,19 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
         // Gestion des flags de région
         if (data.setFlag != null) {
-            handleSetFlag(data.setFlag, player);
+            handleSetFlag(data.setFlag, player, cmd, event);
             return;
         }
 
         // Gestion des flags de groupe
         if (data.setGroupFlag != null) {
-            handleSetGroupFlag(data.setGroupFlag, player);
+            handleSetGroupFlag(data.setGroupFlag, player, cmd, event);
             return;
         }
 
         // Gestion des flags de joueur
         if (data.setPlayerFlag != null) {
-            handleSetPlayerFlag(data.setPlayerFlag, player);
+            handleSetPlayerFlag(data.setPlayerFlag, player, cmd, event);
             return;
         }
 
@@ -1410,7 +1410,7 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
         sendUpdate(cmd, event, false);
     }
 
-    private void handleSetFlag(String flagData, Player player) {
+    private void handleSetFlag(String flagData, Player player, UICommandBuilder cmd, UIEventBuilder event) {
         String[] parts = flagData.split(":");
         if (parts.length < 2) return;
 
@@ -1446,12 +1446,13 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             }
         }
 
-        // Flags utilise appendInline, donc rebuild()
+        // Mise a jour in-place du bouton du flag sans rebuild (conserve le scroll)
+        updateFlagButton(cmd, event, flag, region.getFlags().get(flag));
         currentPage = "flags";
-        rebuild();
+        sendUpdate(cmd, event, false);
     }
 
-    private void handleSetGroupFlag(String flagData, Player player) {
+    private void handleSetGroupFlag(String flagData, Player player, UICommandBuilder cmd, UIEventBuilder event) {
         // Format: "rankName:flagName:nextValue"
         String[] parts = flagData.split(":");
         if (parts.length < 3) return;
@@ -1489,12 +1490,14 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             }
         }
 
-        // Flags utilise appendInline, donc rebuild()
+        // Mise a jour in-place sans rebuild (conserve le scroll)
+        Object updatedValue = region.getOverrideCache().getGroupOverrides(rankName).get(flag);
+        updateGroupFlagButton(cmd, event, flag, updatedValue, rankName);
         currentPage = "flags";
-        rebuild();
+        sendUpdate(cmd, event, false);
     }
 
-    private void handleSetPlayerFlag(String flagData, Player player) {
+    private void handleSetPlayerFlag(String flagData, Player player, UICommandBuilder cmd, UIEventBuilder event) {
         // Format: "playerUuid:flagName:nextValue"
         String[] parts = flagData.split(":");
         if (parts.length < 3) return;
@@ -1540,9 +1543,11 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             }
         }
 
-        // Flags utilise appendInline, donc rebuild()
+        // Mise a jour in-place sans rebuild (conserve le scroll)
+        Object updatedValue = region.getOverrideCache().getPlayerOverrides(targetUuid).get(flag);
+        updatePlayerFlagButton(cmd, event, flag, updatedValue, targetUuid);
         currentPage = "flags";
-        rebuild();
+        sendUpdate(cmd, event, false);
     }
 
     private void handleSearchPlayer(String playerName, Player player) {
@@ -1769,6 +1774,85 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
     // ===========================================
     // HELPERS
     // ===========================================
+
+    /**
+     * Calcule l'index d'un flag boolean dans la liste (les flags non-boolean sont skippés).
+     */
+    private int getFlagBooleanIndex(RegionFlag targetFlag) {
+        int index = 0;
+        for (RegionFlag flag : RegionFlag.values()) {
+            if (flag.getType() != RegionFlag.FlagType.BOOLEAN) continue;
+            if (flag == targetFlag) return index;
+            index++;
+        }
+        return -1;
+    }
+
+    /**
+     * Met a jour in-place un bouton de flag (region) sans rebuild.
+     * Change le texte, la couleur de fond et re-bind l'event.
+     */
+    private void updateFlagButton(UICommandBuilder cmd, UIEventBuilder event, RegionFlag flag, Object newValue) {
+        int index = getFlagBooleanIndex(flag);
+        if (index < 0) return;
+        String rowId = "Flag" + index;
+        updateFlagButtonGeneric(cmd, event, rowId, flag, newValue, "SetFlag", flag.getName());
+    }
+
+    /**
+     * Met a jour in-place un bouton de flag (groupe) sans rebuild.
+     */
+    private void updateGroupFlagButton(UICommandBuilder cmd, UIEventBuilder event, RegionFlag flag, Object newValue, String rankName) {
+        int index = getFlagBooleanIndex(flag);
+        if (index < 0) return;
+        String rowId = "GFlag" + index;
+        updateFlagButtonGeneric(cmd, event, rowId, flag, newValue, "SetGroupFlag", rankName + ":" + flag.getName());
+    }
+
+    /**
+     * Met a jour in-place un bouton de flag (joueur) sans rebuild.
+     */
+    private void updatePlayerFlagButton(UICommandBuilder cmd, UIEventBuilder event, RegionFlag flag, Object newValue, UUID playerUuid) {
+        int index = getFlagBooleanIndex(flag);
+        if (index < 0) return;
+        String rowId = "PFlag" + index;
+        updateFlagButtonGeneric(cmd, event, rowId, flag, newValue, "SetPlayerFlag", playerUuid.toString() + ":" + flag.getName());
+    }
+
+    private void updateFlagButtonGeneric(UICommandBuilder cmd, UIEventBuilder event, String rowId,
+                                          RegionFlag flag, Object newValue, String eventKey, String eventPrefix) {
+        String status;
+        String bgColor;
+        String nextAction;
+
+        if (newValue == null) {
+            status = "---";
+            bgColor = "#252d38";
+            nextAction = "true";
+        } else if (Boolean.TRUE.equals(newValue)) {
+            status = "ON";
+            bgColor = "#1a3a1a";
+            nextAction = "members";
+        } else if ("members".equals(newValue)) {
+            status = "MEMBRES";
+            bgColor = "#2a2a1a";
+            nextAction = "false";
+        } else {
+            status = "OFF";
+            bgColor = "#3a1a1a";
+            nextAction = "clear";
+        }
+
+        String displayText = formatFlagName(flag.getName()) + ": " + status;
+        String nameColor = flag.getStatus().getColor();
+
+        cmd.set("#" + rowId + " #Lbl.Text", displayText);
+        cmd.set("#" + rowId + " #Lbl.Style.TextColor", nameColor);
+        cmd.set("#" + rowId + ".Background.Color", bgColor);
+
+        event.addEventBinding(CustomUIEventBindingType.Activating, "#" + rowId,
+            EventData.of(eventKey, eventPrefix + ":" + nextAction), false);
+    }
 
     /**
      * Affiche une ligne de flag dans la liste des flags actifs.

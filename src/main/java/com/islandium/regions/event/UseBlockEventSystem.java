@@ -92,7 +92,7 @@ public class UseBlockEventSystem extends EntityEventSystem<EntityStore, UseBlock
         }
 
         // Vérifier la permission: INTERACT, fallback vers USE
-        boolean allowed = RegionPermissionChecker.isAllowed(region, player, RegionFlag.INTERACT, RegionFlag.USE, playerPermissions);
+        boolean allowed = RegionPermissionChecker.isAllowed(region, player, RegionFlag.INTERACT, null, playerPermissions);
 
         if (!allowed) {
             event.setCancelled(true);

@@ -129,7 +129,7 @@ public class DropItemEventSystem extends EntityEventSystem<EntityStore, DropItem
         }
 
         // Verifier le flag ITEM_DROP avec la resolution Joueur > Groupe > Region
-        Boolean itemDropFlag = region.getFlag(RegionFlag.ITEM_DROP);
+        Object itemDropFlag = region.getFlag(RegionFlag.ITEM_DROP);
         plugin.log(Level.INFO, "[ItemDrop] DEBUG: Flag ITEM_DROP = " + itemDropFlag);
 
         boolean allowed = RegionPermissionChecker.isAllowed(

@@ -38,11 +38,6 @@ public enum RegionFlag {
     INTERACT("interact", Boolean.TRUE, FlagType.BOOLEAN, "Autorise les interactions", ImplementationStatus.IMPLEMENTED),
 
     /**
-     * Autorise l'utilisation d'items/blocs.
-     */
-    USE("use", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'utilisation", ImplementationStatus.IMPLEMENTED),
-
-    /**
      * Autorise l'accès aux coffres.
      */
     CHEST_ACCESS("chest-access", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'acces aux coffres", ImplementationStatus.IMPLEMENTED),

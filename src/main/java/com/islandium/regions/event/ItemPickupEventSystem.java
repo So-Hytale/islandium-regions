@@ -129,7 +129,7 @@ public class ItemPickupEventSystem extends EntityEventSystem<EntityStore, Intera
         }
 
         // Verifier le flag ITEM_PICKUP avec la resolution Joueur > Groupe > Region
-        Boolean itemPickupFlag = region.getFlag(RegionFlag.ITEM_PICKUP);
+        Object itemPickupFlag = region.getFlag(RegionFlag.ITEM_PICKUP);
         plugin.log(Level.INFO, "[ItemPickup] DEBUG: Flag ITEM_PICKUP = " + itemPickupFlag);
 
         boolean allowed = RegionPermissionChecker.isAllowed(

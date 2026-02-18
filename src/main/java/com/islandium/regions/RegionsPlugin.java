@@ -20,6 +20,7 @@ import com.islandium.regions.event.DamageBlockEventSystem;
 import com.islandium.regions.event.DamageEventSystem;
 import com.islandium.regions.event.DiscoverZoneEventSystem;
 import com.islandium.regions.event.DropItemEventSystem;
+import com.islandium.regions.event.EventTestListener;
 import com.islandium.regions.event.ItemPickupEventSystem;
 import com.islandium.regions.event.PlaceBlockEventSystem;
 import com.islandium.regions.event.PlayerMovementTracker;
@@ -103,6 +104,9 @@ public class RegionsPlugin extends JavaPlugin {
         getEntityStoreRegistry().registerSystem(new SwitchActiveSlotEventSystem());
         getEntityStoreRegistry().registerSystem(new ChangeGameModeEventSystem());
         log(Level.INFO, "ECS Event systems registered (11 listeners)");
+
+        // Enregistrer les listeners non-ECS (player/entity events) pour test
+        new EventTestListener(this).register(getEventRegistry());
     }
 
     /**

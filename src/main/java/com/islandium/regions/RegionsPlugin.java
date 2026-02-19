@@ -21,6 +21,7 @@ import com.islandium.regions.event.DamageEventSystem;
 import com.islandium.regions.event.DiscoverZoneEventSystem;
 import com.islandium.regions.event.DropItemEventSystem;
 import com.islandium.regions.event.EventTestListener;
+import com.islandium.regions.event.HarvestBlockBusListener;
 import com.islandium.regions.event.ItemPickupBusListener;
 import com.islandium.regions.event.ItemPickupEventSystem;
 import com.islandium.regions.event.PlaceBlockEventSystem;
@@ -71,6 +72,7 @@ public class RegionsPlugin extends JavaPlugin {
     // Event listeners
     private PlayerMovementTracker movementTracker;
     private ItemPickupBusListener itemPickupBusListener;
+    private HarvestBlockBusListener harvestBlockBusListener;
 
     // État
     private String currentWorldName = "world"; // Monde par défaut
@@ -210,6 +212,12 @@ public class RegionsPlugin extends JavaPlugin {
             this.itemPickupBusListener = new ItemPickupBusListener(this);
             this.itemPickupBusListener.register();
 
+            // 10c. Enregistrer le listener HarvestBlock sur IslandiumEventBus
+            // Intercepte les harvest (touche F) via le mixin BlockHarvestMixin
+            log(Level.INFO, "Registering HarvestBlockBusListener...");
+            this.harvestBlockBusListener = new HarvestBlockBusListener(this);
+            this.harvestBlockBusListener.register();
+
             // 11. Enregistrer dans le menu principal
             log(Level.INFO, "Registering in main menu...");
             registerMenuEntry();
@@ -256,9 +264,12 @@ public class RegionsPlugin extends JavaPlugin {
     public void teardown() {
         log(Level.INFO, "Shutting down Regions plugin...");
 
-        // Arrêter le listener ItemPickup
+        // Arrêter les listeners
         if (itemPickupBusListener != null) {
             itemPickupBusListener.unregister();
+        }
+        if (harvestBlockBusListener != null) {
+            harvestBlockBusListener.unregister();
         }
 
         // Arrêter le movement tracker

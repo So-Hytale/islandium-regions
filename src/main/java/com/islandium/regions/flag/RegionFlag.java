@@ -95,6 +95,11 @@ public enum RegionFlag {
      */
     ITEM_PICKUP("item-pickup", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le ramassage d'items", ImplementationStatus.IMPLEMENTED),
 
+    /**
+     * Autorise le harvest de blocs (touche F sur rubble, etc.).
+     */
+    HARVEST("harvest", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le harvest (touche F)", ImplementationStatus.IMPLEMENTED),
+
     // === Flags de messages ===
 
     /**

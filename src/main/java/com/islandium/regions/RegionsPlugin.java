@@ -21,6 +21,7 @@ import com.islandium.regions.event.DamageEventSystem;
 import com.islandium.regions.event.DiscoverZoneEventSystem;
 import com.islandium.regions.event.DropItemEventSystem;
 import com.islandium.regions.event.EventTestListener;
+import com.islandium.regions.event.ItemPickupBusListener;
 import com.islandium.regions.event.ItemPickupEventSystem;
 import com.islandium.regions.event.PlaceBlockEventSystem;
 import com.islandium.regions.event.PlayerMovementTracker;
@@ -69,6 +70,7 @@ public class RegionsPlugin extends JavaPlugin {
 
     // Event listeners
     private PlayerMovementTracker movementTracker;
+    private ItemPickupBusListener itemPickupBusListener;
 
     // État
     private String currentWorldName = "world"; // Monde par défaut
@@ -202,6 +204,12 @@ public class RegionsPlugin extends JavaPlugin {
             this.movementTracker = new PlayerMovementTracker(this);
             this.movementTracker.start();
 
+            // 10b. Enregistrer le listener ItemPickup sur IslandiumEventBus
+            // Intercepte TOUS les pickups via le mixin PlayerGiveItemMixin
+            log(Level.INFO, "Registering ItemPickupBusListener...");
+            this.itemPickupBusListener = new ItemPickupBusListener(this);
+            this.itemPickupBusListener.register();
+
             // 11. Enregistrer dans le menu principal
             log(Level.INFO, "Registering in main menu...");
             registerMenuEntry();
@@ -247,6 +255,11 @@ public class RegionsPlugin extends JavaPlugin {
      */
     public void teardown() {
         log(Level.INFO, "Shutting down Regions plugin...");
+
+        // Arrêter le listener ItemPickup
+        if (itemPickupBusListener != null) {
+            itemPickupBusListener.unregister();
+        }
 
         // Arrêter le movement tracker
         if (movementTracker != null) {

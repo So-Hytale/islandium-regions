@@ -3,10 +3,10 @@ package com.islandium.regions.event;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.core.api.event.IslandiumEventBus;
-import com.islandium.core.api.event.block.HarvestBlockEvent;
 import com.islandium.core.api.permission.PlayerPermissions;
 import com.islandium.core.api.util.NotificationType;
 import com.islandium.core.api.util.NotificationUtil;
+import com.islandium.core.hook.HarvestBlockSimpleEvent;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.flag.RegionFlag;
 import com.islandium.regions.model.RegionImpl;
@@ -19,15 +19,15 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 
 /**
- * Listener sur IslandiumEventBus pour intercepter les HarvestBlockEvent
- * fires par le mixin BlockHarvestMixin.
+ * Listener sur IslandiumEventBus pour intercepter les HarvestBlockSimpleEvent
+ * fires par le HookRegistrar via le mixin BlockHarvestMixin.
  *
  * Verifie le flag HARVEST de la region du bloc et cancel si pas autorise.
  */
 public class HarvestBlockBusListener {
 
     private final RegionsPlugin plugin;
-    private Consumer<HarvestBlockEvent> handler;
+    private Consumer<HarvestBlockSimpleEvent> handler;
 
     public HarvestBlockBusListener(RegionsPlugin plugin) {
         this.plugin = plugin;
@@ -40,37 +40,46 @@ public class HarvestBlockBusListener {
         }
 
         handler = this::onHarvestBlock;
-        IslandiumEventBus.get().register(HarvestBlockEvent.class, handler);
+        IslandiumEventBus.get().register(HarvestBlockSimpleEvent.class, handler);
         plugin.log(Level.INFO, "HarvestBlockBusListener registered on IslandiumEventBus");
     }
 
     public void unregister() {
         if (handler != null && IslandiumEventBus.isAvailable()) {
-            IslandiumEventBus.get().unregister(HarvestBlockEvent.class, handler);
+            IslandiumEventBus.get().unregister(HarvestBlockSimpleEvent.class, handler);
             handler = null;
         }
     }
 
-    private void onHarvestBlock(HarvestBlockEvent event) {
+    private void onHarvestBlock(HarvestBlockSimpleEvent event) {
         if (plugin.getRegionService() == null) return;
 
-        // Position du bloc
-        int x = event.getBlockPos().getX();
-        int y = event.getBlockPos().getY();
-        int z = event.getBlockPos().getZ();
+        UUID playerUuid = event.getPlayerUuid();
+        if (playerUuid == null) return;
 
-        // Obtenir le Player directement depuis l'event (résolu dans le mixin)
-        Player player = event.getPlayerEntity();
-        if (player == null) return;
+        int x = event.getX();
+        int y = event.getY();
+        int z = event.getZ();
 
         // Obtenir le monde
-        String worldName;
+        String worldName = plugin.getCurrentWorldName();
+
+        // Essayer de resoudre le Player pour les permissions et la notification
+        Player player = null;
         try {
-            var world = player.getWorld();
-            worldName = (world != null) ? world.getName() : plugin.getCurrentWorldName();
-        } catch (Exception e) {
-            worldName = plugin.getCurrentWorldName();
-        }
+            if (IslandiumPlugin.isInitialized()) {
+                var optPlayer = IslandiumPlugin.get().getPlayerManager().getOnlinePlayer(playerUuid);
+                if (optPlayer.isPresent()) {
+                    player = optPlayer.get().getHytalePlayer();
+                    if (player != null) {
+                        var world = player.getWorld();
+                        if (world != null) {
+                            worldName = world.getName();
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
 
         // Verifier les regions
         List<RegionImpl> regions = plugin.getRegionService().getRegionsAt(worldName, x, y, z);
@@ -81,8 +90,7 @@ public class HarvestBlockBusListener {
         // Permissions du joueur
         PlayerPermissions playerPermissions = null;
         try {
-            UUID playerUuid = player.getUuid();
-            if (IslandiumPlugin.get() != null) {
+            if (IslandiumPlugin.isInitialized()) {
                 playerPermissions = IslandiumPlugin.get()
                     .getServiceManager()
                     .getPermissionService()
@@ -99,8 +107,10 @@ public class HarvestBlockBusListener {
             event.setCancelled(true);
             String regionDisplayName = RegionService.isGlobalRegion(region)
                 ? "Region Globale" : region.getName();
-            NotificationUtil.send(player, NotificationType.WARNING,
-                "Vous ne pouvez pas harvest dans " + regionDisplayName + " (harvest)");
+            if (player != null) {
+                NotificationUtil.send(player, NotificationType.WARNING,
+                    "Vous ne pouvez pas harvest dans " + regionDisplayName + " (harvest)");
+            }
         }
     }
 }

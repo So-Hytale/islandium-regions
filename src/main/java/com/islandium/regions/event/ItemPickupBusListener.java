@@ -5,10 +5,10 @@ import com.hypixel.hytale.server.core.modules.entity.component.TransformComponen
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.islandium.core.IslandiumPlugin;
 import com.islandium.core.api.event.IslandiumEventBus;
-import com.islandium.core.api.event.item.ItemPickupEvent;
 import com.islandium.core.api.permission.PlayerPermissions;
 import com.islandium.core.api.util.NotificationType;
 import com.islandium.core.api.util.NotificationUtil;
+import com.islandium.core.hook.ItemPickupSimpleEvent;
 import com.islandium.regions.RegionsPlugin;
 import com.islandium.regions.flag.RegionFlag;
 import com.islandium.regions.model.RegionImpl;
@@ -21,8 +21,8 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 
 /**
- * Listener sur IslandiumEventBus pour intercepter les ItemPickupEvent
- * fires par le mixin PlayerGiveItemMixin.
+ * Listener sur IslandiumEventBus pour intercepter les ItemPickupSimpleEvent
+ * fires par le HookRegistrar via le mixin PlayerGiveItemMixin.
  *
  * Verifie le flag ITEM_PICKUP de la region du joueur et cancel si pas autorise.
  * Couvre TOUS les pickups: passif (marcher dessus), interactif (F), harvest, etc.
@@ -30,7 +30,7 @@ import java.util.logging.Level;
 public class ItemPickupBusListener {
 
     private final RegionsPlugin plugin;
-    private Consumer<ItemPickupEvent> handler;
+    private Consumer<ItemPickupSimpleEvent> handler;
 
     public ItemPickupBusListener(RegionsPlugin plugin) {
         this.plugin = plugin;
@@ -46,7 +46,7 @@ public class ItemPickupBusListener {
         }
 
         handler = this::onItemPickup;
-        IslandiumEventBus.get().register(ItemPickupEvent.class, handler);
+        IslandiumEventBus.get().register(ItemPickupSimpleEvent.class, handler);
         plugin.log(Level.INFO, "ItemPickupBusListener registered on IslandiumEventBus");
     }
 
@@ -55,15 +55,28 @@ public class ItemPickupBusListener {
      */
     public void unregister() {
         if (handler != null && IslandiumEventBus.isAvailable()) {
-            IslandiumEventBus.get().unregister(ItemPickupEvent.class, handler);
+            IslandiumEventBus.get().unregister(ItemPickupSimpleEvent.class, handler);
             handler = null;
         }
     }
 
-    private void onItemPickup(ItemPickupEvent event) {
+    private void onItemPickup(ItemPickupSimpleEvent event) {
         if (plugin.getRegionService() == null) return;
 
-        Player player = event.getPlayerEntity();
+        UUID playerUuid = event.getPlayerUuid();
+        if (playerUuid == null) return;
+
+        // Resoudre le Player via le PlayerManager
+        Player player = null;
+        try {
+            if (IslandiumPlugin.isInitialized()) {
+                var optPlayer = IslandiumPlugin.get().getPlayerManager().getOnlinePlayer(playerUuid);
+                if (optPlayer.isPresent()) {
+                    player = optPlayer.get().getHytalePlayer();
+                }
+            }
+        } catch (Exception ignored) {}
+
         if (player == null) return;
 
         // Obtenir la position du joueur
@@ -97,8 +110,7 @@ public class ItemPickupBusListener {
         // Recuperer les permissions du joueur
         PlayerPermissions playerPermissions = null;
         try {
-            UUID playerUuid = player.getUuid();
-            if (IslandiumPlugin.get() != null) {
+            if (IslandiumPlugin.isInitialized()) {
                 playerPermissions = IslandiumPlugin.get()
                     .getServiceManager()
                     .getPermissionService()

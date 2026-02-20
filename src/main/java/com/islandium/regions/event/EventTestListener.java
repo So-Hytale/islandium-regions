@@ -35,8 +35,20 @@ public class EventTestListener {
         // Player events (KeyType = Void -> register)
         registry.register(PlayerConnectEvent.class, e ->
             plugin.log(Level.INFO, "[TEST] PlayerConnectEvent declenche !"));
-        registry.register(PlayerDisconnectEvent.class, e ->
-            plugin.log(Level.INFO, "[TEST] PlayerDisconnectEvent declenche !"));
+        registry.register(PlayerDisconnectEvent.class, e -> {
+            plugin.log(Level.INFO, "[TEST] PlayerDisconnectEvent declenche !");
+            // Nettoyer le movement tracker
+            PlayerMovementTracker tracker = plugin.getMovementTracker();
+            if (tracker != null) {
+                try {
+                    java.util.UUID uuid = e.getPlayerRef().getUuid();
+                    if (uuid != null) {
+                        tracker.removePlayer(uuid);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        });
         registry.register(PlayerMouseButtonEvent.class, e ->
             plugin.log(Level.INFO, "[TEST] PlayerMouseButtonEvent declenche !"));
 

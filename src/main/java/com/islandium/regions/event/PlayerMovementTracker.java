@@ -1,9 +1,15 @@
 package com.islandium.regions.event;
 
-import com.islandium.core.api.util.ColorUtil;
+import com.islandium.core.IslandiumPlugin;
+import com.islandium.core.api.location.ServerLocation;
+import com.islandium.core.api.player.IslandiumPlayer;
+import com.islandium.core.api.util.NotificationType;
+import com.islandium.core.api.util.NotificationUtil;
 import com.islandium.regions.RegionsPlugin;
+import com.islandium.regions.flag.RegionFlag;
 import com.islandium.regions.model.RegionImpl;
 import com.islandium.regions.service.RegionService;
+import com.islandium.regions.util.RegionPermissionChecker;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -15,17 +21,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 /**
- * Traque les mouvements des joueurs pour détecter les entrées/sorties de régions.
- * Utilise un système de polling car l'API Hytale ne fournit pas d'événement de mouvement.
+ * Traque les mouvements des joueurs pour detecter les entrees/sorties de regions.
+ * Utilise un systeme de polling via IslandiumPlugin.getOnlinePlayersLocal().
  *
- * NOTE: Cette classe nécessite une méthode getOnlinePlayers() dans RegionsPlugin
- * qui doit retourner une collection de PlayerRef. L'implémentation dépend de l'API
- * Hytale disponible.
- *
- * Fonctionnalités:
- * - Détection des entrées/sorties de régions
- * - Vérification des flags ENTRY et EXIT
+ * Fonctionnalites:
+ * - Detection des entrees/sorties de regions
+ * - Verification des flags ENTRY et EXIT
  * - Envoi des messages GREETING_MESSAGE et FAREWELL_MESSAGE
+ * - Teleportation en arriere si l'entree/sortie est refusee
  */
 public class PlayerMovementTracker {
 
@@ -35,11 +38,14 @@ public class PlayerMovementTracker {
     private final ScheduledExecutorService scheduler;
     private ScheduledFuture<?> pollTask;
 
-    // Régions actuelles par joueur (UUID joueur -> Set d'IDs de région)
+    // Regions actuelles par joueur (UUID joueur -> Set d'IDs de region)
     private final Map<UUID, Set<Integer>> playerCurrentRegions = new ConcurrentHashMap<>();
 
-    // Position précédente par joueur (pour détecter le mouvement)
+    // Position precedente par joueur (pour detecter le mouvement et teleport-back)
     private final Map<UUID, int[]> playerLastPosition = new ConcurrentHashMap<>();
+
+    // Monde du joueur
+    private final Map<UUID, String> playerWorld = new ConcurrentHashMap<>();
 
     public PlayerMovementTracker(@NotNull RegionsPlugin plugin) {
         this.plugin = plugin;
@@ -51,63 +57,88 @@ public class PlayerMovementTracker {
     }
 
     /**
-     * Démarre le tracking des mouvements.
+     * Demarre le tracking des mouvements.
      */
     public void start() {
         if (pollTask != null && !pollTask.isCancelled()) {
             return;
         }
 
-        // Le polling est désactivé pour l'instant car l'API getOnlinePlayers() n'est pas disponible
-        // pollTask = scheduler.scheduleAtFixedRate(this::pollPlayers, POLL_INTERVAL_MS, POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        plugin.log(Level.INFO, "[PlayerMovementTracker] Started (polling disabled - waiting for Hytale API)");
+        pollTask = scheduler.scheduleAtFixedRate(this::pollPlayers, POLL_INTERVAL_MS, POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
+        plugin.log(Level.INFO, "[PlayerMovementTracker] Started (polling every " + POLL_INTERVAL_MS + "ms)");
     }
 
     /**
-     * Arrête le tracking des mouvements.
+     * Polling de tous les joueurs en ligne.
+     */
+    private void pollPlayers() {
+        try {
+            IslandiumPlugin core = IslandiumPlugin.get();
+            if (core == null) return;
+
+            Collection<IslandiumPlayer> players = core.getPlayerManager().getOnlinePlayersLocal();
+            for (IslandiumPlayer player : players) {
+                try {
+                    ServerLocation loc = player.getLocation();
+                    if (loc == null) continue;
+
+                    updatePlayerPosition(
+                        player,
+                        loc.world(),
+                        (int) loc.x(),
+                        (int) loc.y(),
+                        (int) loc.z()
+                    );
+                } catch (Exception e) {
+                    // Silently skip player if location retrieval fails
+                }
+            }
+        } catch (Exception e) {
+            plugin.log(Level.WARNING, "[PlayerMovementTracker] Error polling players: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Arrete le tracking des mouvements.
      */
     public void stop() {
         if (pollTask != null) {
             pollTask.cancel(false);
             pollTask = null;
         }
+        scheduler.shutdown();
         playerCurrentRegions.clear();
         playerLastPosition.clear();
+        playerWorld.clear();
         plugin.log(Level.INFO, "[PlayerMovementTracker] Stopped");
     }
 
     /**
-     * Supprime un joueur du tracking (lors de la déconnexion).
+     * Supprime un joueur du tracking (lors de la deconnexion).
      */
     public void removePlayer(@NotNull UUID playerUuid) {
         playerCurrentRegions.remove(playerUuid);
         playerLastPosition.remove(playerUuid);
+        playerWorld.remove(playerUuid);
     }
 
     /**
-     * Met à jour manuellement la position d'un joueur.
-     * Cette méthode peut être appelée depuis un autre système qui connaît la position.
-     *
-     * @param playerUuid UUID du joueur
-     * @param worldName Nom du monde
-     * @param x Position X
-     * @param y Position Y
-     * @param z Position Z
+     * Met a jour la position d'un joueur et detecte les entrees/sorties de regions.
      */
-    public void updatePlayerPosition(@NotNull UUID playerUuid, @NotNull String worldName, int x, int y, int z) {
+    public void updatePlayerPosition(@NotNull IslandiumPlayer player, @NotNull String worldName, int x, int y, int z) {
+        UUID playerUuid = player.getUniqueId();
         RegionService regionService = plugin.getRegionService();
-        if (regionService == null) {
-            return;
-        }
+        if (regionService == null) return;
 
-        // Vérifier si le joueur a bougé
+        // Verifier si le joueur a bouge (meme bloc)
         int[] lastPos = playerLastPosition.get(playerUuid);
-        if (lastPos != null && lastPos[0] == x && lastPos[1] == y && lastPos[2] == z) {
+        String lastWorld = playerWorld.get(playerUuid);
+        if (lastPos != null && lastWorld != null && lastWorld.equals(worldName)
+                && lastPos[0] == x && lastPos[1] == y && lastPos[2] == z) {
             return; // Pas de mouvement
         }
-        playerLastPosition.put(playerUuid, new int[]{x, y, z});
 
-        // Récupérer les régions actuelles
+        // Recuperer les regions actuelles
         Set<Integer> oldRegions = playerCurrentRegions.getOrDefault(playerUuid, Collections.emptySet());
         List<RegionImpl> currentRegionsList = regionService.getRegionsAt(worldName, x, y, z);
 
@@ -116,28 +147,40 @@ public class PlayerMovementTracker {
             newRegions.add(region.getId());
         }
 
-        // Calculer les entrées et sorties
+        // Calculer les entrees et sorties
         Set<Integer> entered = new HashSet<>(newRegions);
         entered.removeAll(oldRegions);
 
         Set<Integer> exited = new HashSet<>(oldRegions);
         exited.removeAll(newRegions);
 
-        // Traiter les entrées
+        // Traiter les entrees
         for (Integer regionId : entered) {
             RegionImpl region = findRegionById(currentRegionsList, regionId);
             if (region != null) {
-                handleRegionEntry(playerUuid, region, worldName, x, y, z, regionService, lastPos);
+                if (!handleRegionEntry(player, region, worldName, x, y, z, regionService)) {
+                    // Entree refusee -> teleporter en arriere et ne pas mettre a jour la position
+                    teleportBack(player, lastPos, lastWorld);
+                    return;
+                }
             }
         }
 
         // Traiter les sorties
         for (Integer regionId : exited) {
             Optional<RegionImpl> regionOpt = findRegionByIdInWorld(regionService, worldName, regionId);
-            regionOpt.ifPresent(region -> handleRegionExit(playerUuid, region, worldName, regionService));
+            if (regionOpt.isPresent()) {
+                if (!handleRegionExit(player, regionOpt.get(), worldName, regionService)) {
+                    // Sortie refusee -> teleporter en arriere et ne pas mettre a jour la position
+                    teleportBack(player, lastPos, lastWorld);
+                    return;
+                }
+            }
         }
 
-        // Mettre à jour le cache
+        // Mettre a jour le cache
+        playerLastPosition.put(playerUuid, new int[]{x, y, z});
+        playerWorld.put(playerUuid, worldName);
         if (newRegions.isEmpty()) {
             playerCurrentRegions.remove(playerUuid);
         } else {
@@ -146,59 +189,94 @@ public class PlayerMovementTracker {
     }
 
     /**
-     * Gère l'entrée dans une région.
+     * Gere l'entree dans une region.
+     * @return true si l'entree est autorisee, false sinon
      */
-    private void handleRegionEntry(@NotNull UUID playerUuid, @NotNull RegionImpl region,
-                                   @NotNull String worldName, int x, int y, int z,
-                                   @NotNull RegionService regionService, int[] lastPos) {
+    private boolean handleRegionEntry(@NotNull IslandiumPlayer player, @NotNull RegionImpl region,
+                                      @NotNull String worldName, int x, int y, int z,
+                                      @NotNull RegionService regionService) {
+        UUID playerUuid = player.getUniqueId();
 
-        // Vérifier si l'entrée est autorisée
+        // Bypass check
+        if (RegionPermissionChecker.isBypassing(playerUuid)) {
+            return true;
+        }
+
+        // Verifier si l'entree est autorisee
         if (!regionService.isEntryAllowed(worldName, x, y, z, playerUuid)) {
-            // Note: La téléportation nécessite une référence au joueur
-            // Pour l'instant, on log juste l'événement
-            plugin.log(Level.FINE, "[Movement] Entry DENIED for player " + playerUuid + " in region: " + region.getName());
-            return;
+            String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
+            player.sendNotification(NotificationType.WARNING,
+                "Vous ne pouvez pas entrer dans " + regionDisplayName);
+            plugin.log(Level.INFO, "[Movement] Entry DENIED for " + player.getName() + " in region: " + region.getName());
+            return false;
         }
 
         // Envoyer le message de bienvenue
-        String greeting = regionService.getGreetingMessage(worldName, x, y, z);
+        String greeting = (String) region.getFlag(RegionFlag.GREETING_MESSAGE);
         if (greeting != null && !greeting.isEmpty()) {
-            // Note: L'envoi de message nécessite une référence au joueur
-            plugin.log(Level.FINE, "[Movement] Would send greeting to " + playerUuid + ": " + greeting);
+            player.sendNotification(NotificationType.INFO, greeting);
         }
 
-        plugin.log(Level.FINE, "[Movement] Player " + playerUuid + " entered region: " + region.getName());
+        plugin.log(Level.FINE, "[Movement] " + player.getName() + " entered region: " + region.getName());
+        return true;
     }
 
     /**
-     * Gère la sortie d'une région.
+     * Gere la sortie d'une region.
+     * @return true si la sortie est autorisee, false sinon
      */
-    private void handleRegionExit(@NotNull UUID playerUuid, @NotNull RegionImpl region,
-                                  @NotNull String worldName, @NotNull RegionService regionService) {
+    private boolean handleRegionExit(@NotNull IslandiumPlayer player, @NotNull RegionImpl region,
+                                     @NotNull String worldName, @NotNull RegionService regionService) {
+        UUID playerUuid = player.getUniqueId();
+
+        // Bypass check
+        if (RegionPermissionChecker.isBypassing(playerUuid)) {
+            return true;
+        }
 
         int cx = region.getShape().getCenterX();
         int cy = region.getShape().getCenterY();
         int cz = region.getShape().getCenterZ();
 
-        // Vérifier si la sortie est autorisée
+        // Verifier si la sortie est autorisee
         if (!regionService.isExitAllowed(worldName, cx, cy, cz, playerUuid)) {
-            // Note: La téléportation nécessite une référence au joueur
-            plugin.log(Level.FINE, "[Movement] Exit DENIED for player " + playerUuid + " from region: " + region.getName());
-            return;
+            String regionDisplayName = RegionService.isGlobalRegion(region) ? "Region Globale" : region.getName();
+            player.sendNotification(NotificationType.WARNING,
+                "Vous ne pouvez pas quitter " + regionDisplayName);
+            plugin.log(Level.INFO, "[Movement] Exit DENIED for " + player.getName() + " from region: " + region.getName());
+            return false;
         }
 
         // Envoyer le message d'au revoir
-        String farewell = regionService.getFarewellMessage(worldName, cx, cy, cz);
+        String farewell = (String) region.getFlag(RegionFlag.FAREWELL_MESSAGE);
         if (farewell != null && !farewell.isEmpty()) {
-            // Note: L'envoi de message nécessite une référence au joueur
-            plugin.log(Level.FINE, "[Movement] Would send farewell to " + playerUuid + ": " + farewell);
+            player.sendNotification(NotificationType.INFO, farewell);
         }
 
-        plugin.log(Level.FINE, "[Movement] Player " + playerUuid + " exited region: " + region.getName());
+        plugin.log(Level.FINE, "[Movement] " + player.getName() + " exited region: " + region.getName());
+        return true;
     }
 
     /**
-     * Trouve une région par ID dans une liste.
+     * Teleporte le joueur a sa position precedente (quand entry/exit est refuse).
+     */
+    private void teleportBack(@NotNull IslandiumPlayer player, int[] lastPos, String lastWorld) {
+        if (lastPos == null || lastWorld == null) return;
+
+        try {
+            ServerLocation backLoc = ServerLocation.of(
+                IslandiumPlugin.get().getServerName(),
+                lastWorld,
+                lastPos[0] + 0.5, lastPos[1], lastPos[2] + 0.5
+            );
+            player.teleport(backLoc);
+        } catch (Exception e) {
+            plugin.log(Level.WARNING, "[Movement] Failed to teleport back " + player.getName() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Trouve une region par ID dans une liste.
      */
     private RegionImpl findRegionById(List<RegionImpl> regions, int id) {
         for (RegionImpl region : regions) {
@@ -210,7 +288,7 @@ public class PlayerMovementTracker {
     }
 
     /**
-     * Trouve une région par ID dans le monde.
+     * Trouve une region par ID dans le monde.
      */
     private Optional<RegionImpl> findRegionByIdInWorld(RegionService regionService, String worldName, int id) {
         for (RegionImpl region : regionService.getRegionsByWorld(worldName)) {
@@ -222,14 +300,14 @@ public class PlayerMovementTracker {
     }
 
     /**
-     * Vérifie si le tracker est actif.
+     * Verifie si le tracker est actif.
      */
     public boolean isRunning() {
         return pollTask != null && !pollTask.isCancelled();
     }
 
     /**
-     * Obtient les régions actuelles d'un joueur.
+     * Obtient les regions actuelles d'un joueur.
      */
     @NotNull
     public Set<Integer> getPlayerRegions(@NotNull UUID playerUuid) {

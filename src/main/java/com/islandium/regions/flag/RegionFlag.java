@@ -18,112 +18,112 @@ public enum RegionFlag {
     /**
      * Autorise la construction globale (par défaut pour break/place si non défini).
      */
-    BUILD("build", Boolean.TRUE, FlagType.BOOLEAN, "Autorise la construction", ImplementationStatus.IMPLEMENTED),
+    BUILD("build", Boolean.TRUE, FlagType.BOOLEAN, "Casser et placer des blocs (global)", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise le cassage de blocs.
      */
-    BLOCK_BREAK("block-break", null, FlagType.BOOLEAN, "Autorise le cassage de blocs", ImplementationStatus.IMPLEMENTED),
+    BLOCK_BREAK("block-break", null, FlagType.BOOLEAN, "Casser des blocs (prioritaire sur Build)", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise le placement de blocs.
      */
-    BLOCK_PLACE("block-place", null, FlagType.BOOLEAN, "Autorise le placement de blocs", ImplementationStatus.IMPLEMENTED),
+    BLOCK_PLACE("block-place", null, FlagType.BOOLEAN, "Placer des blocs (prioritaire sur Build)", ImplementationStatus.IMPLEMENTED),
 
     // === Flags d'interaction ===
 
     /**
      * Autorise les interactions avec les blocs (portes, leviers, etc.).
      */
-    INTERACT("interact", Boolean.TRUE, FlagType.BOOLEAN, "Autorise les interactions", ImplementationStatus.IMPLEMENTED),
+    INTERACT("interact", Boolean.TRUE, FlagType.BOOLEAN, "Portes, leviers, boutons, etc.", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise l'accès aux coffres.
      */
-    CHEST_ACCESS("chest-access", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'acces aux coffres", ImplementationStatus.IMPLEMENTED),
+    CHEST_ACCESS("chest-access", Boolean.TRUE, FlagType.BOOLEAN, "Ouvrir et utiliser les coffres", ImplementationStatus.IMPLEMENTED),
 
     // === Flags de combat ===
 
     /**
      * Autorise le PvP dans la région.
      */
-    PVP("pvp", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le PvP", ImplementationStatus.IMPLEMENTED),
+    PVP("pvp", Boolean.TRUE, FlagType.BOOLEAN, "Combat entre joueurs", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Rend les joueurs invincibles dans la région.
      */
-    INVINCIBLE("invincible", Boolean.FALSE, FlagType.BOOLEAN, "Joueurs invincibles", ImplementationStatus.IMPLEMENTED),
+    INVINCIBLE("invincible", Boolean.FALSE, FlagType.BOOLEAN, "Les joueurs ne prennent aucun degat", ImplementationStatus.IMPLEMENTED),
 
     // === Flags d'entités ===
 
     /**
      * Autorise le spawn de mobs.
      */
-    MOB_SPAWNING("mob-spawning", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le spawn de mobs", ImplementationStatus.NOT_IMPLEMENTED),
+    MOB_SPAWNING("mob-spawning", Boolean.TRUE, FlagType.BOOLEAN, "Apparition naturelle des mobs", ImplementationStatus.NOT_IMPLEMENTED),
 
     /**
      * Autorise les dégâts aux mobs.
      */
-    MOB_DAMAGE("mob-damage", Boolean.TRUE, FlagType.BOOLEAN, "Autorise les degats aux mobs", ImplementationStatus.IMPLEMENTED),
+    MOB_DAMAGE("mob-damage", Boolean.TRUE, FlagType.BOOLEAN, "Infliger des degats aux mobs", ImplementationStatus.IMPLEMENTED),
 
     // === Flags de mouvement ===
 
     /**
      * Autorise l'entrée dans la région.
      */
-    ENTRY("entry", Boolean.TRUE, FlagType.BOOLEAN, "Autorise l'entree", ImplementationStatus.IMPLEMENTED),
+    ENTRY("entry", Boolean.TRUE, FlagType.BOOLEAN, "Entrer dans la region", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise la sortie de la région.
      */
-    EXIT("exit", Boolean.TRUE, FlagType.BOOLEAN, "Autorise la sortie", ImplementationStatus.IMPLEMENTED),
+    EXIT("exit", Boolean.TRUE, FlagType.BOOLEAN, "Sortir de la region", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise la téléportation dans la région.
      */
-    TELEPORT("teleport", Boolean.TRUE, FlagType.BOOLEAN, "Autorise la teleportation", ImplementationStatus.NOT_IMPLEMENTED),
+    TELEPORT("teleport", Boolean.TRUE, FlagType.BOOLEAN, "Se teleporter dans la region", ImplementationStatus.NOT_IMPLEMENTED),
 
     // === Flags d'items ===
 
     /**
      * Autorise le drop d'items.
      */
-    ITEM_DROP("item-drop", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le drop d'items", ImplementationStatus.IMPLEMENTED),
+    ITEM_DROP("item-drop", Boolean.TRUE, FlagType.BOOLEAN, "Jeter des items au sol", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise le ramassage d'items.
      */
-    ITEM_PICKUP("item-pickup", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le ramassage d'items", ImplementationStatus.IMPLEMENTED),
+    ITEM_PICKUP("item-pickup", Boolean.TRUE, FlagType.BOOLEAN, "Ramasser des items au sol", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise le harvest de blocs (touche F sur rubble, etc.).
      */
-    HARVEST("harvest", Boolean.TRUE, FlagType.BOOLEAN, "Autorise le harvest (touche F)", ImplementationStatus.IMPLEMENTED),
+    HARVEST("harvest", Boolean.TRUE, FlagType.BOOLEAN, "Recolter avec la touche F (rubble, etc.)", ImplementationStatus.IMPLEMENTED),
 
     // === Flags de messages ===
 
     /**
      * Message affiché à l'entrée de la région.
      */
-    GREETING_MESSAGE("greeting-message", null, FlagType.STRING, "Message d'entree", ImplementationStatus.IMPLEMENTED),
+    GREETING_MESSAGE("greeting-message", null, FlagType.STRING, "Message affiche a l'entree de la region", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Message affiché à la sortie de la région.
      */
-    FAREWELL_MESSAGE("farewell-message", null, FlagType.STRING, "Message de sortie", ImplementationStatus.IMPLEMENTED),
+    FAREWELL_MESSAGE("farewell-message", null, FlagType.STRING, "Message affiche a la sortie de la region", ImplementationStatus.IMPLEMENTED),
 
     // === Flags divers ===
 
     /**
      * Passe les événements aux régions de priorité inférieure.
      */
-    PASSTHROUGH("passthrough", Boolean.FALSE, FlagType.BOOLEAN, "Passe aux regions inferieures", ImplementationStatus.NOT_IMPLEMENTED),
+    PASSTHROUGH("passthrough", Boolean.FALSE, FlagType.BOOLEAN, "Propager les events aux regions de priorite inferieure", ImplementationStatus.NOT_IMPLEMENTED),
 
     /**
      * Liste des ranks autorisés (séparés par des virgules).
      * Ex: "admin,moderator,vip"
      */
-    ALLOWED_RANKS("allowed-ranks", null, FlagType.STRING, "Ranks autorises", ImplementationStatus.NOT_IMPLEMENTED);
+    ALLOWED_RANKS("allowed-ranks", null, FlagType.STRING, "Limiter l'acces a certains ranks (separes par virgules)", ImplementationStatus.NOT_IMPLEMENTED);
 
     private final String name;
     private final Object defaultValue;

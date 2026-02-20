@@ -664,12 +664,14 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
 
             // Seulement les flags booleens sont cliquables
             if (flag.getType() != RegionFlag.FlagType.BOOLEAN) {
-                // Pour les flags non-booleens (STRING, INTEGER), afficher un simple label
+                // Pour les flags non-booleens (STRING, INTEGER), afficher un label avec description
                 Object value = activeFlags.get(flag);
                 String valueStr = value != null ? sanitize(value.toString()) : "---";
                 String labelCode = String.format(
-                    "Label { Text: \"%s: %s\"; Anchor: (Height: 28); Style: (FontSize: 13, TextColor: %s); }",
-                    formatFlagName(flag.getName()), valueStr, nameColor
+                    "Group { Anchor: (Height: 48, Bottom: 2); LayoutMode: Top; Background: (Color: #252d38); Padding: (Horizontal: 10, Vertical: 4); " +
+                    "Label { Anchor: (Height: 20); Text: \"%s: %s\"; Style: (FontSize: 12, TextColor: %s); } " +
+                    "Label { Anchor: (Height: 16); Text: \"%s\"; Style: (FontSize: 9, TextColor: #606878); } }",
+                    formatFlagName(flag.getName()), valueStr, nameColor, sanitize(flag.getDescription())
                 );
                 cmd.appendInline("#FlagsList", labelCode);
                 continue;
@@ -711,13 +713,17 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             String displayText = formatFlagName(flag.getName()) + ": " + status;
 
             String rowCode = String.format(
-                "Button #%s { Anchor: (Height: 32, Bottom: 2); Background: (Color: %s); Padding: (Horizontal: 10); Label #Lbl { Style: (FontSize: 12, VerticalAlignment: Center); } }",
+                "Button #%s { Anchor: (Height: 48, Bottom: 2); Background: (Color: %s); Padding: (Horizontal: 10, Vertical: 4); " +
+                "Group { LayoutMode: Top; " +
+                "Label #Lbl { Anchor: (Height: 20); Style: (FontSize: 12, VerticalAlignment: Center); } " +
+                "Label #Desc { Anchor: (Height: 16); Style: (FontSize: 9, TextColor: #606878, VerticalAlignment: Center); } } }",
                 rowId, bgColor
             );
             cmd.appendInline("#FlagsList", rowCode);
             cmd.set("#" + rowId + " #Lbl.Text", displayText);
             // Couleur du texte = couleur d'implémentation (vert/jaune/gris) pour le nom
             cmd.set("#" + rowId + " #Lbl.Style.TextColor", nameColor);
+            cmd.set("#" + rowId + " #Desc.Text", sanitize(flag.getDescription()));
 
             // Event binding - SetFlag avec format "flagName:nextValue"
             event.addEventBinding(CustomUIEventBindingType.Activating, "#" + rowId,
@@ -814,12 +820,16 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             String displayText = formatFlagName(flag.getName()) + ": " + status;
 
             String rowCode = String.format(
-                "Button #%s { Anchor: (Height: 32, Bottom: 2); Background: (Color: %s); Padding: (Horizontal: 10); Label #Lbl { Style: (FontSize: 12, VerticalAlignment: Center); } }",
+                "Button #%s { Anchor: (Height: 48, Bottom: 2); Background: (Color: %s); Padding: (Horizontal: 10, Vertical: 4); " +
+                "Group { LayoutMode: Top; " +
+                "Label #Lbl { Anchor: (Height: 20); Style: (FontSize: 12, VerticalAlignment: Center); } " +
+                "Label #Desc { Anchor: (Height: 16); Style: (FontSize: 9, TextColor: #606878, VerticalAlignment: Center); } } }",
                 rowId, bgColor
             );
             cmd.appendInline("#GroupFlagsList", rowCode);
             cmd.set("#" + rowId + " #Lbl.Text", displayText);
             cmd.set("#" + rowId + " #Lbl.Style.TextColor", nameColor);
+            cmd.set("#" + rowId + " #Desc.Text", sanitize(flag.getDescription()));
 
             // Event binding - SetGroupFlag avec format "rankName:flagName:nextValue"
             event.addEventBinding(CustomUIEventBindingType.Activating, "#" + rowId,
@@ -913,12 +923,16 @@ public class RegionMainPage extends InteractiveCustomUIPage<RegionMainPage.PageD
             String displayText = formatFlagName(flag.getName()) + ": " + status;
 
             String rowCode = String.format(
-                "Button #%s { Anchor: (Height: 32, Bottom: 2); Background: (Color: %s); Padding: (Horizontal: 10); Label #Lbl { Style: (FontSize: 12, VerticalAlignment: Center); } }",
+                "Button #%s { Anchor: (Height: 48, Bottom: 2); Background: (Color: %s); Padding: (Horizontal: 10, Vertical: 4); " +
+                "Group { LayoutMode: Top; " +
+                "Label #Lbl { Anchor: (Height: 20); Style: (FontSize: 12, VerticalAlignment: Center); } " +
+                "Label #Desc { Anchor: (Height: 16); Style: (FontSize: 9, TextColor: #606878, VerticalAlignment: Center); } } }",
                 rowId, bgColor
             );
             cmd.appendInline("#PlayerFlagsList", rowCode);
             cmd.set("#" + rowId + " #Lbl.Text", displayText);
             cmd.set("#" + rowId + " #Lbl.Style.TextColor", nameColor);
+            cmd.set("#" + rowId + " #Desc.Text", sanitize(flag.getDescription()));
 
             // Event binding - SetPlayerFlag avec format "playerUuid:flagName:nextValue"
             event.addEventBinding(CustomUIEventBindingType.Activating, "#" + rowId,

@@ -59,7 +59,7 @@ public enum RegionFlag {
     /**
      * Autorise le spawn de mobs.
      */
-    MOB_SPAWNING("mob-spawning", Boolean.TRUE, FlagType.BOOLEAN, "Apparition naturelle des mobs", ImplementationStatus.NOT_IMPLEMENTED),
+    MOB_SPAWNING("mob-spawning", Boolean.TRUE, FlagType.BOOLEAN, "Apparition naturelle des mobs", ImplementationStatus.IMPLEMENTED),
 
     /**
      * Autorise les dégâts aux mobs.

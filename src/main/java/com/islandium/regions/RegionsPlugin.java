@@ -21,6 +21,7 @@ import com.islandium.regions.event.DamageEventSystem;
 import com.islandium.regions.event.DiscoverZoneEventSystem;
 import com.islandium.regions.event.DropItemEventSystem;
 import com.islandium.regions.event.EventTestListener;
+import com.islandium.regions.event.EntitySpawnBusListener;
 import com.islandium.regions.event.HarvestBlockBusListener;
 import com.islandium.regions.event.ItemPickupBusListener;
 import com.islandium.regions.event.ItemPickupEventSystem;
@@ -73,6 +74,7 @@ public class RegionsPlugin extends JavaPlugin {
     private PlayerMovementTracker movementTracker;
     private ItemPickupBusListener itemPickupBusListener;
     private HarvestBlockBusListener harvestBlockBusListener;
+    private EntitySpawnBusListener entitySpawnBusListener;
 
     // État
     private String currentWorldName = "world"; // Monde par défaut
@@ -218,6 +220,12 @@ public class RegionsPlugin extends JavaPlugin {
             this.harvestBlockBusListener = new HarvestBlockBusListener(this);
             this.harvestBlockBusListener.register();
 
+            // 10d. Enregistrer le listener EntitySpawn sur IslandiumEventBus
+            // Intercepte les spawns de mobs via le mixin EntitySpawnMixin
+            log(Level.INFO, "Registering EntitySpawnBusListener...");
+            this.entitySpawnBusListener = new EntitySpawnBusListener(this);
+            this.entitySpawnBusListener.register();
+
             // 11. Enregistrer dans le menu principal
             log(Level.INFO, "Registering in main menu...");
             registerMenuEntry();
@@ -270,6 +278,9 @@ public class RegionsPlugin extends JavaPlugin {
         }
         if (harvestBlockBusListener != null) {
             harvestBlockBusListener.unregister();
+        }
+        if (entitySpawnBusListener != null) {
+            entitySpawnBusListener.unregister();
         }
 
         // Arrêter le movement tracker

@@ -275,7 +275,7 @@ public class RegionVisualizationService {
                 matrix.asFloatData(),
                 color,
                 DISPLAY_DURATION,
-                true,
+                (byte) 0,
                 null,
                 1.0f
         );
@@ -295,7 +295,7 @@ public class RegionVisualizationService {
                 matrix.asFloatData(),
                 color,
                 DISPLAY_DURATION,
-                true,
+                (byte) 0,
                 null,
                 1.0f
         );

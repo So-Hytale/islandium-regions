@@ -2,7 +2,6 @@ package com.islandium.regions.event;
 
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.server.core.event.events.entity.EntityRemoveEvent;
-import com.hypixel.hytale.server.core.event.events.entity.LivingEntityInventoryChangeEvent;
 import com.hypixel.hytale.server.core.event.events.entity.LivingEntityUseBlockEvent;
 import com.hypixel.hytale.server.core.event.events.player.AddPlayerToWorldEvent;
 import com.hypixel.hytale.server.core.event.events.player.DrainPlayerFromWorldEvent;
@@ -72,8 +71,6 @@ public class EventTestListener {
             }));
 
         // Entity events (KeyType = String -> registerGlobal)
-        registry.registerGlobal(LivingEntityInventoryChangeEvent.class, e ->
-            plugin.log(Level.INFO, "[TEST] LivingEntityInventoryChangeEvent declenche !"));
         registry.registerGlobal(LivingEntityUseBlockEvent.class, e ->
             plugin.log(Level.INFO, "[TEST] LivingEntityUseBlockEvent declenche !"));
         registry.registerGlobal(EntityRemoveEvent.class, e ->

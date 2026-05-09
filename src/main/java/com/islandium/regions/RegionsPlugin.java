@@ -27,6 +27,7 @@ import com.islandium.regions.event.ItemPickupBusListener;
 import com.islandium.regions.event.ItemPickupEventSystem;
 import com.islandium.regions.event.PlaceBlockEventSystem;
 import com.islandium.regions.event.PlayerMovementTracker;
+import com.islandium.regions.event.InventoryChangeEventSystem;
 import com.islandium.regions.event.SwitchActiveSlotEventSystem;
 import com.islandium.regions.event.UseBlockEventSystem;
 import com.islandium.regions.service.RegionService;
@@ -109,7 +110,8 @@ public class RegionsPlugin extends JavaPlugin {
         getEntityStoreRegistry().registerSystem(new DiscoverZoneEventSystem());
         getEntityStoreRegistry().registerSystem(new SwitchActiveSlotEventSystem());
         getEntityStoreRegistry().registerSystem(new ChangeGameModeEventSystem());
-        log(Level.INFO, "ECS Event systems registered (11 listeners)");
+        getEntityStoreRegistry().registerSystem(new InventoryChangeEventSystem());
+        log(Level.INFO, "ECS Event systems registered (12 listeners)");
 
         // Enregistrer les listeners non-ECS (player/entity events) pour test
         new EventTestListener(this).register(getEventRegistry());
